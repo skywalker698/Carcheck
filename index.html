@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบ Scan รถเข้าออก - โรงงานน้ำตาลไทยเอกลักษณ์</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+}
+
+body { 
+    font-family: 'Sarabun', sans-serif; 
+    background: #f8fafc;
+    min-height: 100vh; 
+    color: #1a365d; 
+    line-height: 1.6;
+}
+
+.header { 
+    background: linear-gradient(135deg, #1a365d 0%, #2d4a6b 100%);
+    color: white; 
+    padding: 32px 0; 
+    box-shadow: 0 4px 20px rgba(26, 54, 93, 0.15);
+    position: relative;
+text-align:center;
+}
+
+.header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3182ce, #2c5aa0, #1a365d);
+}
+
+.header-content { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+    text-align: center; 
+    padding: 0 24px;
+}
+
+/* .government-seal {
+    width: 100px;
+    height: 100px;
+    background: white;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 4px solid #e2e8f0;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+} */
+
+.seal-text {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1a365d;
+    text-align: center;
+    line-height: 1.1;
+}
+
+.main-title { 
+    font-size: 2.8rem; 
+    font-weight: 700; 
+    margin-bottom: 8px; 
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    letter-spacing: -0.02em;
+}
+
+.sub-title { 
+    font-size: 1.3rem; 
+    font-weight: 400; 
+    opacity: 0.9;
+    letter-spacing: 0.02em;
+}
+
+.container { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+    padding: 32px 24px; 
+}
+
+/* Latest Scan Display */
+.latest-scan-section {
+    margin-bottom: 32px;
+}
+
+.scan-status-card {
+    background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%);
+    border: 2px solid #68d391;
+    border-radius: 20px;
+    padding: 40px 32px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(72, 187, 120, 0.15);
+    animation: scanCardAppear 0.5s ease-out;
+}
+
+.scan-status-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: scanShimmer 2s infinite;
+}
+
+.scan-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+    animation: scanIconPulse 1.5s ease-in-out infinite;
+}
+
+.scan-checkmark {
+    font-size: 2.5rem;
+    color: white;
+    font-weight: bold;
+    animation: checkmarkAppear 0.6s ease-out 0.3s both;
+}
+
+.scan-status-text {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2f855a;
+    margin-bottom: 16px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.scan-person-name {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #1a365d;
+    margin-bottom: 16px;
+    line-height: 1.1;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    animation: nameSlideIn 0.7s ease-out 0.5s both;
+}
+
+.scan-details {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    font-size: 1.1rem;
+    color: #4a5568;
+    margin-top: 20px;
+    animation: detailsFadeIn 0.8s ease-out 0.7s both;
+}
+
+.scan-time {
+    font-weight: 600;
+    color: #2b6cb0;
+}
+
+.scan-divider {
+    color: #cbd5e0;
+    font-weight: bold;
+}
+
+.scan-vehicle {
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    background: #edf2f7;
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e0;
+    color: #1a365d;
+}
+
+.scan-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100px;
+    height: 100px;
+    transform: translate(-50%, -50%);
+    border: 2px solid #48bb78;
+    border-radius: 50%;
+    opacity: 0;
+    animation: scanPulse 2s ease-out infinite;
+    pointer-events: none;
+}
+
+/* Animations */
+@keyframes scanCardAppear {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes scanShimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+@keyframes scanIconPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes checkmarkAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.3) rotate(-10deg);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+    }
+}
+
+@keyframes nameSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes detailsFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scanPulse {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    50% {
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.5);
+    }
+}
+
+.status-section {
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 32px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1a365d;
+    margin-bottom: 24px;
+    text-align: center;
+    position: relative;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: #1a365d;
+    border-radius: 2px;
+}
+
+.status-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+    gap: 20px;
+}
+
+.status-card { 
+    background: white;
+    border-radius: 12px; 
+    padding: 24px 20px; 
+    text-align: center;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.status-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #1a365d, #3182ce);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.status-card:hover::before {
+    transform: scaleX(1);
+}
+
+.status-card:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 8px 25px rgba(26, 54, 93, 0.1);
+    border-color: #cbd5e0;
+}
+
+.card-label { 
+    font-size: 0.875rem; 
+    font-weight: 600; 
+    color: #718096; 
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.card-value { 
+    font-size: 2.5rem; 
+    font-weight: 700; 
+    color: #1a365d; 
+    margin-bottom: 8px;
+    line-height: 1;
+}
+
+.card-description { 
+    color: #718096; 
+    font-size: 0.875rem;
+    font-weight: 400;
+}
+
+.latest-info {
+    background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+    border: 1px solid #90cdf4;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 12px;
+}
+
+.latest-label {
+    font-size: 0.75rem;
+    color: #2b6cb0;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+
+.latest-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1a365d;
+}
+
+.data-section {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+}
+
+.table-header { 
+    background: linear-gradient(135deg, #1a365d 0%, #2d4a6b 100%);
+    color: white; 
+    padding: 24px 32px;
+}
+
+.table-title { 
+    font-size: 1.5rem; 
+    font-weight: 600; 
+    margin-bottom: 4px;
+}
+
+.table-subtitle { 
+    opacity: 0.9; 
+    font-size: 0.975rem;
+}
+
+.table-controls { 
+    padding: 24px 32px; 
+    border-bottom: 1px solid #e2e8f0;
+    background: #f7fafc;
+    display: flex; 
+    gap: 16px; 
+    align-items: center; 
+    flex-wrap: wrap;
+}
+
+.search-input { 
+    flex: 1; 
+    min-width: 280px; 
+    padding: 12px 16px; 
+    border: 1px solid #cbd5e0; 
+    border-radius: 8px; 
+    font-size: 0.975rem;
+    font-family: 'Sarabun', sans-serif;
+    background: white;
+    transition: all 0.2s ease;
+}
+
+.search-input:focus { 
+    outline: none; 
+    border-color: #3182ce; 
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+}
+
+.search-input::placeholder {
+    color: #a0aec0;
+}
+
+.refresh-btn { 
+    padding: 12px 24px; 
+    background: linear-gradient(135deg, #1a365d 0%, #2d4a6b 100%);
+    color: white; 
+    border: none; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-weight: 600;
+    font-size: 0.875rem;
+    font-family: 'Sarabun', sans-serif;
+    transition: all 0.2s ease;
+    min-width: 140px;
+    position: relative;
+    overflow: hidden;
+}
+
+.refresh-btn:hover { 
+    transform: translateY(-1px); 
+    box-shadow: 0 4px 12px rgba(26, 54, 93, 0.25);
+    background: linear-gradient(135deg, #2d4a6b 0%, #3182ce 100%);
+}
+
+.refresh-btn:active {
+    transform: translateY(0);
+}
+
+.table-container { 
+    overflow-x: auto; 
+    max-height: 600px;
+}
+
+table { 
+    width: 100%; 
+    border-collapse: collapse;
+    background: white;
+}
+
+th, td { 
+    padding: 16px 20px; 
+    text-align: left; 
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.875rem;
+}
+
+th { 
+    background: linear-gradient(180deg, #f7fafc 0%, #edf2f7 100%);
+    font-weight: 600; 
+    color: #1a365d; 
+    position: sticky; 
+    top: 0; 
+    z-index: 10;
+    border-bottom: 2px solid #cbd5e0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+}
+
+tr:hover { 
+    background: #f7fafc;
+}
+
+tr:nth-child(even) {
+    background: #fbfcfe;
+}
+
+tr:nth-child(even):hover {
+    background: #f7fafc;
+}
+
+.status-badge { 
+    padding: 6px 12px; 
+    border-radius: 6px; 
+    font-size: 0.75rem; 
+    font-weight: 500; 
+    text-align: center;
+    display: inline-block;
+    background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+    color: #2b6cb0;
+    border: 1px solid #90cdf4;
+}
+
+.loading { 
+    text-align: center; 
+    padding: 48px; 
+    color: #718096;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.error { 
+    text-align: center; 
+    padding: 48px; 
+    color: #e53e3e; 
+    background: #fed7d7; 
+    border-radius: 8px; 
+    margin: 20px;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.footer {
+            background: #1a365d;
+            color: white;
+            padding: 24px;
+            margin-top: 48px;
+            font-size: 0.875rem;
+        }
+        
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        
+        .footer-section {
+            flex: 1;
+            min-width: 250px;
+            margin-bottom: 20px;
+            padding: 0 15px;
+        }
+        
+        .footer-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 5px;
+        }
+        
+        .footer-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .footer-links li {
+            margin-bottom: 8px;
+        }
+        
+        .footer-links a {
+            color: #e6e6e6;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-links a:hover {
+            color: white;
+            text-decoration: underline;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            width: 100%;
+        }
+        
+        .developer-credit {
+            font-size: 0.8rem;
+            margin-top: 10px;
+            color: #cccccc;
+        }
+        
+        @media (max-width: 768px) {
+            .footer-container {
+                flex-direction: column;
+            }
+            
+            .footer-section {
+                margin-bottom: 25px;
+            }
+        }
+
+.data-value {
+    font-weight: 600;
+    color: #1a365d;
+}
+
+.vehicle-plate {
+    font-weight: 700;
+    color: #1a365d;
+    font-family: 'Courier New', monospace;
+    background: #f7fafc;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+}
+
+.timestamp {
+    color: #718096;
+    font-weight: 500;
+    font-size: 0.8125rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) { 
+    .main-title { font-size: 2rem; }
+    .sub-title { font-size: 1.1rem; }
+    .container { padding: 24px 16px; }
+    .status-section { padding: 24px 20px; }
+    .table-header { padding: 20px 24px; }
+    .table-controls { 
+        padding: 20px 24px; 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 12px;
+    }
+    .search-input { 
+        min-width: 100%; 
+        margin-bottom: 8px;
+    }
+    .refresh-btn {
+        width: 100%;
+    }
+    th, td { 
+        padding: 12px 16px; 
+        font-size: 0.8125rem; 
+    }
+  .government-seal {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 10px;
+}
+
+.seal-logo {
+  width: 120px;   /* ปรับขนาดความกว้างตามต้องการ */
+  height: auto;   /* รักษาอัตราส่วนภาพ */
+} 
+ .seal-text {
+        font-size: 10px;
+    }
+    .status-grid { 
+        grid-template-columns: 1fr; 
+        gap: 16px; 
+    }
+    .card-value { 
+        font-size: 2rem; 
+    }
+    
+    /* Latest scan responsive */
+    .scan-status-card {
+        padding: 32px 24px;
+    }
+    .scan-person-name {
+        font-size: 2.2rem;
+    }
+    .scan-icon {
+        width: 60px;
+        height: 60px;
+    }
+    .scan-checkmark {
+        font-size: 2rem;
+    }
+    .scan-status-text {
+        font-size: 1.2rem;
+    }
+    .scan-details {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .scan-divider {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-title { font-size: 1.75rem; }
+    .container { padding: 20px 12px; }
+    .status-section { padding: 20px 16px; }
+    .table-controls { padding: 16px 20px; }
+    .card-value { font-size: 1.875rem; }
+    th, td { 
+        padding: 10px 12px; 
+        font-size: 0.75rem; 
+    }
+    .vehicle-plate {
+        font-size: 0.75rem;
+        padding: 2px 6px;
+    }
+    
+    /* Latest scan mobile */
+    .scan-status-card {
+        padding: 24px 16px;
+    }
+    .scan-person-name {
+        font-size: 1.8rem;
+    }
+    .scan-icon {
+        width: 50px;
+        height: 50px;
+    }
+    .scan-checkmark {
+        font-size: 1.5rem;
+    }
+    .scan-status-text {
+        font-size: 1rem;
+    }
+    .scan-details {
+        font-size: 0.9rem;
+    }
+}
+
+/* Loading Animation */
+.loading::after {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #cbd5e0;
+    border-top: 2px solid #3182ce;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 12px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Smooth transitions */
+* {
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+<!-- ===== Modal Password ===== -->
+<style>
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+  .modal-box {
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    animation: fadeIn 0.4s ease;
+  }
+  .modal-box h2 {
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    color: #333;
+  }
+  .modal-box input {
+    width: 80%;
+    padding: 10px;
+    font-size: 1rem;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    outline: none;
+    text-align: center;
+  }
+  .modal-box button {
+    background: #4CAF50;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .modal-box button:hover {
+    background: #45a049;
+  }
+  .error-text {
+    color: red;
+    font-size: 0.9rem;
+    margin-top: 8px;
+    display: none;
+  }
+  @keyframes fadeIn {
+    from {opacity: 0; transform: scale(0.9);}
+    to {opacity: 1; transform: scale(1);}
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+    <div class="government-seal">
+  <img src="https://media.set.or.th/common/logo/company/KTIS.png" alt="โรงงานน้ำตาลไทยเอกลักษณ์" class="seal-logo">
+</div>
+        <h1 class="main-title">ระบบ Scan รถเข้าออก</h1>
+        <p class="sub-title">โรงงานน้ำตาลไทยเอกลักษณ์</p>
+    </div>
+</header>
+
+<div class="container">
+    <!-- Latest Scan Display -->
+    <div class="latest-scan-section">
+        <div class="scan-status-card" id="scanStatusCard">
+            <div class="scan-icon">
+                <div class="scan-checkmark">✓</div>
+            </div>
+            <div class="scan-status-text">สแกนผ่านเรียบร้อยแล้ว</div>
+            <div class="scan-person-name" id="latestScanName">กำลังโหลด...</div>
+            <div class="scan-details">
+                <span class="scan-time" id="latestScanTime">-</span>
+                <span class="scan-divider">|</span>
+                <span class="scan-vehicle" id="latestScanVehicle">-</span>
+            </div>
+            <div class="scan-pulse"></div>
+        </div>
+    </div>
+
+    <div class="status-section">
+        <h2 class="section-title">สถิติการใช้งานระบบ</h2>
+        <div class="status-grid">
+            <div class="status-card">
+                <div class="card-label">รวมทั้งหมด</div>
+                <div class="card-value" id="totalCount">-</div>
+                <div class="card-description">บันทึกการสแกนทั้งหมด</div>
+            </div>
+            <div class="status-card">
+                <div class="card-label">จำนวนคน</div>
+                <div class="card-value" id="inCount">-</div>
+                <div class="card-description">บุคคลที่แตกต่างกัน</div>
+            </div>
+            <div class="status-card">
+                <div class="card-label">จำนวนรถ</div>
+                <div class="card-value" id="outCount">-</div>
+                <div class="card-description">ทะเบียนรถที่แตกต่างกัน</div>
+            </div>
+            <div class="status-card">
+                <div class="card-label">อัปเดตล่าสุด</div>
+                <div class="card-value" style="font-size: 1.5rem;" id="lastUpdate">-</div>
+                <div class="card-description">เวลาอัปเดตข้อมูล</div>
+                <div class="latest-info" id="latestInfo" style="display: none;">
+                    <div class="latest-label">ล่าสุด</div>
+                    <div class="latest-name" id="latestName">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="data-section">
+        <div class="table-header">
+            <h2 class="table-title">รายการรถเข้าออก</h2>
+            <p class="table-subtitle">ข้อมูลการสแกนรถเข้าออกโรงงานแบบเรียลไทม์</p>
+        </div>
+        <div class="table-controls">
+            <input type="text" class="search-input" id="searchInput" placeholder="ค้นหา ID, ชื่อ, หน่วยงาน หรือทะเบียนรถ...">
+            <button class="refresh-btn" onclick="loadData()">รีเฟรชข้อมูล</button>
+        </div>
+        <div class="table-container">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>รหัสบุคคล</th>
+                        <th>ชื่อ-นามสกุล</th>
+                        <th>หน่วยงาน</th>
+                        <th>ทะเบียนรถ</th>
+                        <th>วันเวลา</th>
+                    </tr>
+                </thead>
+                <tbody id="dataBody">
+                    <tr><td colspan="5" class="loading">กำลังโหลดข้อมูล</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <div class="footer-title">เกี่ยวกับเรา</div>
+                <ul class="footer-links">
+                    <li><a href="#">ประวัติ น้ำตาลไทยเอกลักษณ์</a></li>
+                    <li><a href="#">วิสัยทัศน์ : จงชนะใจตนเอง และยิ้มอย่างมีความสุข</a></li>
+                    <li><a href="#">โครงสร้างองค์กร</a></li>
+                    <li><a href="#">คณะผู้บริหาร</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <div class="footer-title">บริการของเรา</div>
+                <ul class="footer-links">
+                    <li><a href="#">ผลิตภัณฑ์น้ำตาล</a></li>
+                    <li><a href="#">โมลาส,ผลิตไฟฟ้าและ ส่งเสริมอ้อย</a></li>
+                    <li><a href="#">บริการลูกค้า</a></li>
+                    <li><a href="#">ติดต่อสอบถาม</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <div class="footer-title">ติดต่อเรา</div>
+                <ul class="footer-links">
+                    <li>บริษัทน้ำตาลไทยเอกลักษณ์ จำกัด</li>
+                    <li>Thai Identity Sugar Factory Co., Ltd.</li>
+                    <li>42/1 หมู่ที่ 8 ตำบลคุ้งตะเภา อำเมือง</li>
+                    <li>จังหวัดอุตรดิตถ์ 53000</li>
+                    <li>โทร: 055-407-241</li>
+                    <li>อีเมล: ktisgroup.com</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p>© 2025 โรงงานน้ำตาลไทยเอกลักษณ์ - ระบบ Dash-Tis สถิติเข้าออก โรงงาน</p>
+            <div class="developer-credit">
+                ออกแบบและพัฒนาโดย Se.Wittwat.K
+            </div>
+        </div>
+    </footer>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbx5ttV6fxZLdcF3hhLqt-IaDS_sl5McRNWF5Z-zHLUfZi2YX8XhUBsEAJxBNrl2lP0u/exec?action=getLog';
+let allData = [];
+let filteredData = [];
+let lastRawData = ""; // เก็บข้อมูลเดิม เพื่อเช็คว่ามีเปลี่ยนแปลงหรือไม่
+
+async function loadData() {
+    try {
+        // แสดงข้อความโหลดเฉพาะตอนแรกหรือเมื่อไม่มีข้อมูล
+        if (!allData.length) {
+            document.getElementById('dataBody').innerHTML = '<tr><td colspan="5" class="loading">กำลังโหลดข้อมูล</td></tr>';
+        }
+
+        const response = await fetch(API_URL);
+        const jsonData = await response.json(); // array โดยตรง
+
+        // เช็คว่าข้อมูลใหม่ต่างจากเดิมหรือไม่
+        const currentRaw = JSON.stringify(jsonData);
+        if (currentRaw === lastRawData) {
+            console.log("⏸ ไม่มีข้อมูลใหม่ ไม่อัปเดตซ้ำ");
+            return; // ออกเลย ไม่ทำซ้ำ
+        }
+        lastRawData = currentRaw; // อัปเดตค่าเก็บไว้เปรียบเทียบรอบหน้า
+
+        allData = jsonData.map(r => ({
+            id: r["ID"] ?? '',
+            name: r["name"] ?? '',
+            pathname: r["pathname"] ?? '',
+            carRegis: r["car_regis"] ?? '',
+            timestamp: formatDateTime(r["Timestamp"]),
+            rawTimestamp: r["Timestamp"]
+        }));
+        
+        // เรียงลำดับตาม timestamp ล่าสุดก่อน
+        allData.sort((a, b) => {
+            const timeA = new Date(a.rawTimestamp).getTime();
+            const timeB = new Date(b.rawTimestamp).getTime();
+            return timeB - timeA;
+        });
+        
+        filteredData = [...allData];
+        updateTable(); 
+        updateStats(); 
+        updateLastUpdate();
+        updateLatestPerson();
+    } catch (error) {
+        console.error('Error loading data:', error);
+        showError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+    }
+}
+
+function formatDateTime(value) {
+    if (!value) return '-';
+
+    let date;
+
+    // ถ้าเป็น string
+    if (typeof value === 'string') {
+        // ถ้าเป็นรูปแบบ ISO 2025-09-22T01:40:17.121Z
+        date = new Date(value);
+        if (isNaN(date.getTime())) {
+            // fallback: รูปแบบ "22/9/2025, 14:18:39"
+            const parts = value.split(',');
+            if (parts.length === 2) {
+                const dateParts = parts[0].trim().split('/');
+                const timeParts = parts[1].trim().split(':');
+                if (dateParts.length === 3 && timeParts.length === 3) {
+                    const day = parseInt(dateParts[0], 10);
+                    const month = parseInt(dateParts[1], 10) - 1;
+                    const year = parseInt(dateParts[2], 10);
+                    const hour = parseInt(timeParts[0], 10);
+                    const min = parseInt(timeParts[1], 10);
+                    const sec = parseInt(timeParts[2], 10);
+                    date = new Date(year, month, day, hour, min, sec);
+                }
+            }
+        }
+    }
+
+    // ถ้าเป็น number (Excel timestamp)
+    if (typeof value === 'number') {
+        date = new Date((value - 25569) * 86400 * 1000);
+    }
+
+    if (!(date instanceof Date) || isNaN(date.getTime())) return '-';
+
+    return date.toLocaleString('th-TH', {
+        year:'numeric', month:'2-digit', day:'2-digit',
+        hour:'2-digit', minute:'2-digit', second:'2-digit'
+    });
+}
+
+function updateTable() {
+    const tbody = document.getElementById('dataBody');
+    if (!filteredData.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="loading">ไม่พบข้อมูลที่ค้นหา</td></tr>';
+        return;
+    }
+    tbody.innerHTML = filteredData.map(r=>`
+        <tr>
+            <td><span class="data-value">${r.id}</span></td>
+            <td><span class="data-value">${r.name}</span></td>
+            <td><span class="status-badge">${r.pathname}</span></td>
+            <td><span class="vehicle-plate">${r.carRegis}</span></td>
+            <td><span class="timestamp">${r.timestamp}</span></td>
+        </tr>`).join('');
+}
+
+function updateStats() {
+    document.getElementById('totalCount').textContent = allData.length;
+    document.getElementById('inCount').textContent = [...new Set(allData.map(r=>r.name))].length;
+    document.getElementById('outCount').textContent = [...new Set(allData.map(r=>r.carRegis))].length;
+}
+
+function updateLastUpdate() {
+    const now = new Date();
+    document.getElementById('lastUpdate').textContent = now.toLocaleString('th-TH', { hour:'2-digit', minute:'2-digit' });
+}
+
+function updateLatestPerson() {
+    const latestInfo = document.getElementById('latestInfo');
+    const scanStatusCard = document.getElementById('scanStatusCard');
+    const latestScanName = document.getElementById('latestScanName');
+    const latestScanTime = document.getElementById('latestScanTime');
+    const latestScanVehicle = document.getElementById('latestScanVehicle');
+    
+    if (allData.length > 0) {
+        const latestPerson = allData[0]; // ข้อมูลล่าสุด
+        
+        // อัปเดตข้อมูลในการ์ดเล็ก
+        document.getElementById('latestName').textContent = `${latestPerson.name} (${latestPerson.carRegis})`;
+        latestInfo.style.display = 'block';
+        
+        // อัปเดตข้อมูลในการ์ดใหญ่
+        latestScanName.textContent = latestPerson.name;
+        latestScanTime.textContent = latestPerson.timestamp;
+        latestScanVehicle.textContent = latestPerson.carRegis;
+        
+        // เพิ่มแอนิเมชันเมื่อมีข้อมูลใหม่
+        scanStatusCard.style.animation = 'none';
+        setTimeout(() => {
+            scanStatusCard.style.animation = 'scanCardAppear 0.5s ease-out';
+        }, 10);
+        
+    } else {
+        latestInfo.style.display = 'none';
+        latestScanName.textContent = 'ไม่มีข้อมูล';
+        latestScanTime.textContent = '-';
+        latestScanVehicle.textContent = '-';
+    }
+}
+
+function setupSearch() {
+    document.getElementById('searchInput').addEventListener('input', e => {
+        const term = e.target.value.toLowerCase();
+        filteredData = term === '' ? [...allData] : allData.filter(r => 
+            r.id.toString().toLowerCase().includes(term) ||
+            r.name.toLowerCase().includes(term) ||
+            r.pathname.toLowerCase().includes(term) ||
+            r.carRegis.toLowerCase().includes(term)
+        );
+        updateTable();
+    });
+}
+
+function showError(msg) {
+    document.getElementById('dataBody').innerHTML = `<tr><td colspan="5" class="error">${msg}</td></tr>`;
+}
+
+function init() {
+    setupSearch();
+    loadData();
+    setInterval(loadData, 30000); // อัปเดตอัตโนมัติทุก 30 วินาที
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
