@@ -993,9 +993,13 @@ tr:nth-child(even):hover {
     to {opacity: 1; transform: scale(1);}
   }
 #barChart {
-  width: 600px !important;
-  height: 300px !important;
+  width: 700px !important;
+  height: 380px !important;
 }
+select, button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
+button { background: #317aeb; color: #fff; border: none; cursor: pointer; transition: 0.3s; }
+button:hover { background: #2255b3; }
+
 </style>
 </head>
 <body>
@@ -1114,6 +1118,11 @@ tr:nth-child(even):hover {
             </div>
         </div>
     </div>
+            <h2>Print Barcode PDF</h2>
+<select id="idSelect">
+  <option value="">-- เลือก ID --</option>
+</select>
+<button id="btnPrintBarcode">ดาวน์โหลด PDF</button>
 </div>
 
 <footer class="footer">
@@ -1211,6 +1220,8 @@ async function loadData() {
         updateLatestPerson();
         updateCharts();
         updateRanking();
+        loadIDs();
+        loadData();
     } catch (error) {
         console.error('Error loading data:', error);
         showError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
@@ -1449,13 +1460,51 @@ function showError(msg) {
     document.getElementById('dataBody').innerHTML = `<tr><td colspan="5" class="error">${msg}</td></tr>`;
 }
 
-// 📌 เริ่มระบบ
 function init() {
     setupSearch();
     loadData();
+    loadIDs(); // โหลด ID ให้ select
     setInterval(loadData, 30000); // อัปเดตทุก 30 วินาที
+
+    // กำหนด event listener ปุ่มดาวน์โหลด
+    const btn = document.getElementById('btnPrintBarcode');
+    if(btn){
+        btn.addEventListener('click', async () => {
+            const select = document.getElementById('idSelect'); // ใช้ idSelect ให้ตรงกับ loadIDs()
+            if(!select){ alert('ไม่พบ select'); return; }
+
+            const id = select.value;
+            if(!id){ alert('กรุณาเลือก ID'); return; }
+
+            const url = 'https://script.google.com/macros/s/AKfycbx5ttV6fxZLdcF3hhLqt-IaDS_sl5McRNWF5Z-zHLUfZi2YX8XhUBsEAJxBNrl2lP0u/exec?action=printBarcode&id=' + encodeURIComponent(id);
+            window.open(url, '_blank'); // เปิด PDF ใหม่
+        });
+    }
 }
 
+// 📌 โหลด ID เข้าส่วน select
+async function loadIDs() {
+    try {
+        const response = await fetch('https://script.google.com/macros/s/AKfycbx5ttV6fxZLdcF3hhLqt-IaDS_sl5McRNWF5Z-zHLUfZi2YX8XhUBsEAJxBNrl2lP0u/exec?action=getIDs');
+        const data = await response.json(); // data เป็น Array ของ Object
+
+        const select = document.getElementById('idSelect');
+        if(!select){ console.error('ไม่พบ select idSelect'); return; }
+
+        select.innerHTML = '<option value="">-- เลือก ID --</option>';
+
+        data.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.ID; 
+            option.textContent = `${item.ID} | ${item.name}`; 
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading IDs:', error);
+    }
+}
+
+// 📌 รัน init หลังโหลด DOM
 document.addEventListener('DOMContentLoaded', init);
 </script>
 
