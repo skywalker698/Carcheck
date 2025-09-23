@@ -1094,11 +1094,11 @@ tr:nth-child(even):hover {
             <table id="dataTable">
                 <thead>
                     <tr>
-                        <th>เลขพนักงาน</th>
+                        <th>รหัสบุคคล</th>
                         <th>ชื่อ-นามสกุล</th>
-                        <th>แผนก</th>
+                        <th>หน่วยงาน</th>
                         <th>ทะเบียนรถ</th>
-                        <th>วันเวลาสะแกน</th>
+                        <th>วันเวลา</th>
                     </tr>
                 </thead>
                 <tbody id="dataBody">
@@ -1162,32 +1162,32 @@ tr:nth-child(even):hover {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx5ttV6fxZLdcF3hhLqt-IaDS_sl5McRNWF5Z-zHLUfZi2YX8XhUBsEAJxBNrl2lP0u/exec?action=getLog';
+
 let allData = [];
 let filteredData = [];
-let lastRawData = ""; // เก็บข้อมูลเดิม เพื่อเช็คว่ามีเปลี่ยนแปลงหรือไม่
+let lastRawData = ""; // เก็บข้อมูลเดิมเพื่อตรวจสอบการเปลี่ยนแปลง
 let barChart = null;
 
 // Pagination variables
 let currentPage = 1;
 const recordsPerPage = 10;
 
+// 📌 ฟังก์ชันโหลดข้อมูล
 async function loadData() {
     try {
-        // แสดงข้อความโหลดเฉพาะตอนแรกหรือเมื่อไม่มีข้อมูล
         if (!allData.length) {
             document.getElementById('dataBody').innerHTML = '<tr><td colspan="5" class="loading">กำลังโหลดข้อมูล</td></tr>';
         }
 
         const response = await fetch(API_URL);
-        const jsonData = await response.json(); // array โดยตรง
+        const jsonData = await response.json(); // Array ตรง ๆ จาก Code.gs
 
-        // เช็คว่าข้อมูลใหม่ต่างจากเดิมหรือไม่
         const currentRaw = JSON.stringify(jsonData);
         if (currentRaw === lastRawData) {
             console.log("⏸ ไม่มีข้อมูลใหม่ ไม่อัปเดตซ้ำ");
-            return; // ออกเลย ไม่ทำซ้ำ
+            return;
         }
-        lastRawData = currentRaw; // อัปเดตค่าเก็บไว้เปรียบเทียบรอบหน้า
+        lastRawData = currentRaw;
 
         allData = jsonData.map(r => ({
             id: r["ID"] ?? '',
@@ -1197,19 +1197,16 @@ async function loadData() {
             timestamp: formatDateTime(r["Timestamp"]),
             rawTimestamp: r["Timestamp"]
         }));
-        
-        // เรียงลำดับตาม timestamp ล่าสุดก่อน
-        allData.sort((a, b) => {
-            const timeA = new Date(a.rawTimestamp).getTime();
-            const timeB = new Date(b.rawTimestamp).getTime();
-            return timeB - timeA;
-        });
-        
+
+        // เรียงลำดับ timestamp ล่าสุดก่อน
+        allData.sort((a, b) => new Date(b.rawTimestamp) - new Date(a.rawTimestamp));
+
         filteredData = [...allData];
-        currentPage = 1; // Reset to first page
-        updateTable(); 
+        currentPage = 1;
+
+        updateTable();
         updatePagination();
-        updateStats(); 
+        updateStats();
         updateLastUpdate();
         updateLatestPerson();
         updateCharts();
@@ -1220,35 +1217,32 @@ async function loadData() {
     }
 }
 
+// 📌 ฟังก์ชันแปลงเวลา
 function formatDateTime(value) {
     if (!value) return '-';
-
     let date;
 
-    // ถ้าเป็น string
     if (typeof value === 'string') {
-        // ถ้าเป็นรูปแบบ ISO 2025-09-22T01:40:17.121Z
         date = new Date(value);
         if (isNaN(date.getTime())) {
-            // fallback: รูปแบบ "22/9/2025, 14:18:39"
             const parts = value.split(',');
             if (parts.length === 2) {
                 const dateParts = parts[0].trim().split('/');
                 const timeParts = parts[1].trim().split(':');
                 if (dateParts.length === 3 && timeParts.length === 3) {
-                    const day = parseInt(dateParts[0], 10);
-                    const month = parseInt(dateParts[1], 10) - 1;
-                    const year = parseInt(dateParts[2], 10);
-                    const hour = parseInt(timeParts[0], 10);
-                    const min = parseInt(timeParts[1], 10);
-                    const sec = parseInt(timeParts[2], 10);
-                    date = new Date(year, month, day, hour, min, sec);
+                    date = new Date(
+                        parseInt(dateParts[2], 10),
+                        parseInt(dateParts[1], 10) - 1,
+                        parseInt(dateParts[0], 10),
+                        parseInt(timeParts[0], 10),
+                        parseInt(timeParts[1], 10),
+                        parseInt(timeParts[2], 10)
+                    );
                 }
             }
         }
     }
 
-    // ถ้าเป็น number (Excel timestamp)
     if (typeof value === 'number') {
         date = new Date((value - 25569) * 86400 * 1000);
     }
@@ -1261,94 +1255,89 @@ function formatDateTime(value) {
     });
 }
 
+// 📌 ฟังก์ชันอัปเดตตาราง
 function updateTable() {
     const tbody = document.getElementById('dataBody');
     const startIndex = (currentPage - 1) * recordsPerPage;
     const endIndex = startIndex + recordsPerPage;
     const paginatedData = filteredData.slice(startIndex, endIndex);
-    
+
     if (!paginatedData.length) {
         tbody.innerHTML = '<tr><td colspan="5" class="loading">ไม่พบข้อมูลที่ค้นหา</td></tr>';
         return;
     }
-    
-    tbody.innerHTML = paginatedData.map(r=>`
+
+    tbody.innerHTML = paginatedData.map(r => `
         <tr>
-            <td><span class="data-value">${r.id}</span></td>
+            <td><span class="data-value">${r.id.slice(0, -2)}</span></td>
             <td><span class="data-value">${r.name}</span></td>
             <td><span class="status-badge">${r.pathname}</span></td>
             <td><span class="vehicle-plate">${r.carRegis}</span></td>
             <td><span class="timestamp">${r.timestamp}</span></td>
-        </tr>`).join('');
-    
-    // Update records info
-    document.getElementById('recordsInfo').textContent = 
+        </tr>
+    `).join('');
+
+    document.getElementById('recordsInfo').textContent =
         `แสดง ${Math.min(filteredData.length, recordsPerPage)} จาก ${filteredData.length} รายการ`;
 }
 
+// 📌 ฟังก์ชัน pagination
 function updatePagination() {
     const totalPages = Math.ceil(filteredData.length / recordsPerPage);
     const startRecord = filteredData.length === 0 ? 0 : (currentPage - 1) * recordsPerPage + 1;
     const endRecord = Math.min(currentPage * recordsPerPage, filteredData.length);
-    
-    // Update pagination info
-    document.getElementById('paginationInfo').textContent = 
+
+    document.getElementById('paginationInfo').textContent =
         `แสดง ${startRecord} - ${endRecord} จาก ${filteredData.length} รายการ`;
-    
-    // Update pagination buttons
+
     document.getElementById('prevBtn').disabled = currentPage === 1;
     document.getElementById('nextBtn').disabled = currentPage === totalPages || totalPages === 0;
 }
 
 function changePage(direction) {
     const totalPages = Math.ceil(filteredData.length / recordsPerPage);
-    
-    if (direction === 'prev' && currentPage > 1) {
-        currentPage--;
-    } else if (direction === 'next' && currentPage < totalPages) {
-        currentPage++;
-    }
-    
+
+    if (direction === 'prev' && currentPage > 1) currentPage--;
+    else if (direction === 'next' && currentPage < totalPages) currentPage++;
+
     updateTable();
     updatePagination();
 }
 
+// 📌 ฟังก์ชันสถิติ
 function updateStats() {
     document.getElementById('totalCount').textContent = allData.length;
-    document.getElementById('inCount').textContent = [...new Set(allData.map(r=>r.name))].length;
-    document.getElementById('outCount').textContent = [...new Set(allData.map(r=>r.carRegis))].length;
+    document.getElementById('inCount').textContent = [...new Set(allData.map(r => r.name))].length;
+    document.getElementById('outCount').textContent = [...new Set(allData.map(r => r.carRegis))].length;
 }
 
+// 📌 ฟังก์ชันอัปเดตเวลาอัปเดตล่าสุด
 function updateLastUpdate() {
     const now = new Date();
-    document.getElementById('lastUpdate').textContent = now.toLocaleString('th-TH', { hour:'2-digit', minute:'2-digit' });
+    document.getElementById('lastUpdate').textContent =
+        now.toLocaleString('th-TH', { hour:'2-digit', minute:'2-digit' });
 }
 
+// 📌 ฟังก์ชันอัปเดตข้อมูลล่าสุด
 function updateLatestPerson() {
     const latestInfo = document.getElementById('latestInfo');
     const scanStatusCard = document.getElementById('scanStatusCard');
     const latestScanName = document.getElementById('latestScanName');
     const latestScanTime = document.getElementById('latestScanTime');
     const latestScanVehicle = document.getElementById('latestScanVehicle');
-    
+
     if (allData.length > 0) {
-        const latestPerson = allData[0]; // ข้อมูลล่าสุด
-        
-        // อัปเดตข้อมูลในการ์ดเล็ก
+        const latestPerson = allData[0];
+
         document.getElementById('latestName').textContent = `${latestPerson.name} (${latestPerson.carRegis})`;
         latestInfo.style.display = 'block';
-        
-        // อัปเดตข้อมูลในการ์ดใหญ่
+
         latestScanName.textContent = latestPerson.name;
         latestScanTime.textContent = latestPerson.timestamp;
         latestScanVehicle.textContent = latestPerson.carRegis;
-        
-        // เพิ่มแอนิเมชันเมื่อมีข้อมูลใหม่
+
         scanStatusCard.style.animation = 'none';
-        setTimeout(() => {
-            scanStatusCard.style.animation = 'scanCardAppear 0.5s ease-out';
-        }, 10);
-        
+        setTimeout(() => { scanStatusCard.style.animation = 'scanCardAppear 0.5s ease-out'; }, 10);
     } else {
         latestInfo.style.display = 'none';
         latestScanName.textContent = 'ไม่มีข้อมูล';
@@ -1357,33 +1346,27 @@ function updateLatestPerson() {
     }
 }
 
+// 📌 ฟังก์ชันกราฟ
 function updateCharts() {
-    // กราฟแท่งแสดงสถิติรายวัน (7 วันล่าสุด)
     const last7Days = [];
     const today = new Date();
-    
+
     for (let i = 6; i >= 0; i--) {
         const date = new Date(today);
         date.setDate(date.getDate() - i);
         const dateStr = date.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit' });
-        
+
         const dayData = allData.filter(record => {
             const recordDate = new Date(record.rawTimestamp);
             return recordDate.toDateString() === date.toDateString();
         });
-        
-        last7Days.push({
-            date: dateStr,
-            count: dayData.length
-        });
+
+        last7Days.push({ date: dateStr, count: dayData.length });
     }
-    
+
     const ctx = document.getElementById('barChart').getContext('2d');
-    
-    if (barChart) {
-        barChart.destroy();
-    }
-    
+    if (barChart) barChart.destroy();
+
     barChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1400,68 +1383,43 @@ function updateCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
+            plugins: { legend: { display: false } },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1,
-                        color: '#718096'
-                    },
-                    grid: {
-                        color: '#e2e8f0'
-                    }
-                },
-                x: {
-                    ticks: {
-                        color: '#718096'
-                    },
-                    grid: {
-                        color: '#e2e8f0'
-                    }
-                }
+                y: { beginAtZero: true, ticks:{stepSize:1,color:'#718096'}, grid:{color:'#e2e8f0'} },
+                x: { ticks:{color:'#718096'}, grid:{color:'#e2e8f0'} }
             }
         }
     });
 }
 
+// 📌 ฟังก์ชันจัดอันดับ
 function updateRanking() {
-    // นับจำนวนการสแกนของแต่ละคน
     const personCounts = {};
     allData.forEach(record => {
         const key = record.name;
-        if (key && key !== '') {
-            personCounts[key] = (personCounts[key] || 0) + 1;
-        }
+        if (key) personCounts[key] = (personCounts[key] || 0) + 1;
     });
-    
-    // เรียงลำดับจากน้อยไปมาก และเอา 5 อันดับแรก
+
     const sortedPersons = Object.entries(personCounts)
-        .sort((a, b) => a[1] - b[1])
-        .slice(0, 5);
-    
+        .sort((a,b) => a[1]-b[1])
+        .slice(0,5);
+
     const rankingList = document.getElementById('rankingList');
-    
+
     if (sortedPersons.length === 0) {
-        rankingList.innerHTML = `
-            <li class="ranking-item">
-                <div class="ranking-position">-</div>
-                <div class="ranking-info">
-                    <div class="ranking-name">ไม่มีข้อมูล</div>
-                    <div class="ranking-count">รอข้อมูล</div>
-                </div>
-            </li>
-        `;
+        rankingList.innerHTML = `<li class="ranking-item">
+            <div class="ranking-position">-</div>
+            <div class="ranking-info">
+                <div class="ranking-name">ไม่มีข้อมูล</div>
+                <div class="ranking-count">รอข้อมูล</div>
+            </div>
+        </li>`;
         return;
     }
-    
-    rankingList.innerHTML = sortedPersons.map((person, index) => `
+
+    rankingList.innerHTML = sortedPersons.map((person,index)=>`
         <li class="ranking-item">
-            <div class="ranking-position">${index + 1}</div>
+            <div class="ranking-position">${index+1}</div>
             <div class="ranking-info">
                 <div class="ranking-name">${person[0]}</div>
                 <div class="ranking-count">สแกน <span class="ranking-count-number">${person[1]}</span> ครั้ง</div>
@@ -1470,32 +1428,36 @@ function updateRanking() {
     `).join('');
 }
 
+// 📌 ฟังก์ชันค้นหา
 function setupSearch() {
     document.getElementById('searchInput').addEventListener('input', e => {
         const term = e.target.value.toLowerCase();
-        filteredData = term === '' ? [...allData] : allData.filter(r => 
+        filteredData = term === '' ? [...allData] : allData.filter(r =>
             r.id.toString().toLowerCase().includes(term) ||
             r.name.toLowerCase().includes(term) ||
             r.pathname.toLowerCase().includes(term) ||
             r.carRegis.toLowerCase().includes(term)
         );
-        currentPage = 1; // Reset to first page when searching
+        currentPage = 1;
         updateTable();
         updatePagination();
     });
 }
 
+// 📌 แสดงข้อความ error
 function showError(msg) {
     document.getElementById('dataBody').innerHTML = `<tr><td colspan="5" class="error">${msg}</td></tr>`;
 }
 
+// 📌 เริ่มระบบ
 function init() {
     setupSearch();
     loadData();
-    setInterval(loadData, 30000); // อัปเดตอัตโนมัติทุก 30 วินาที
+    setInterval(loadData, 30000); // อัปเดตทุก 30 วินาที
 }
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
+
 </body>
 </html>
