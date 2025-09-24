@@ -187,6 +187,40 @@ body {
     pointer-events: none;
 }
 
+/* Update Notification */
+.update-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+    z-index: 1000;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+    font-weight: 500;
+}
+
+.update-notification.show {
+    transform: translateX(0);
+}
+
+/* Smooth Update Animations */
+.smooth-update {
+    transition: all 0.3s ease;
+}
+
+.data-row-new {
+    background: linear-gradient(90deg, rgba(72, 187, 120, 0.1) 0%, transparent 100%);
+    animation: newRowHighlight 2s ease-out;
+}
+
+.data-updated {
+    animation: dataUpdatePulse 0.5s ease-out;
+}
+
 /* Animations */
 @keyframes scanCardAppear {
     from {
@@ -255,6 +289,21 @@ body {
         opacity: 0;
         transform: translate(-50%, -50%) scale(1.5);
     }
+}
+
+@keyframes newRowHighlight {
+    0% {
+        background: linear-gradient(90deg, rgba(72, 187, 120, 0.3) 0%, transparent 100%);
+    }
+    100% {
+        background: transparent;
+    }
+}
+
+@keyframes dataUpdatePulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
 }
 
 .status-section {
@@ -409,11 +458,11 @@ body {
     border-radius: 2px;
 }
 
-#barChart {
-    width: 100%;
-    height: 300px;
-}
 
+#barChart {
+  width: auto !important;
+  height: 400px !important;
+}
 .ranking-list {
     list-style: none;
     padding: 0;
@@ -560,6 +609,11 @@ body {
 
 .refresh-btn:active {
     transform: translateY(0);
+}
+
+.refresh-btn.loading {
+    pointer-events: none;
+    opacity: 0.7;
 }
 
 .table-container { 
@@ -871,6 +925,12 @@ tr:nth-child(even):hover {
     .chart-container {
         padding: 24px 20px;
     }
+
+    .update-notification {
+        right: 10px;
+        top: 10px;
+        font-size: 0.85rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -934,75 +994,15 @@ tr:nth-child(even):hover {
     transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-<!-- ===== Modal Password ===== -->
-<style>
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-  }
-  .modal-box {
-    background: #fff;
-    padding: 25px;
-    border-radius: 12px;
-    width: 320px;
-    text-align: center;
-    box-shadow: 0 0 20px rgba(0,0,0,0.3);
-    animation: fadeIn 0.4s ease;
-  }
-  .modal-box h2 {
-    margin-bottom: 15px;
-    font-size: 1.2rem;
-    color: #333;
-  }
-  .modal-box input {
-    width: 80%;
-    padding: 10px;
-    font-size: 1rem;
-    margin: 10px 0;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    outline: none;
-    text-align: center;
-  }
-  .modal-box button {
-    background: #4CAF50;
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-  .modal-box button:hover {
-    background: #45a049;
-  }
-  .error-text {
-    color: red;
-    font-size: 0.9rem;
-    margin-top: 8px;
-    display: none;
-  }
-  @keyframes fadeIn {
-    from {opacity: 0; transform: scale(0.9);}
-    to {opacity: 1; transform: scale(1);}
-  }
-#barChart {
-  width: 700px !important;
-  height: 380px !important;
-}
-select, button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
-button { background: #317aeb; color: #fff; border: none; cursor: pointer; transition: 0.3s; }
-button:hover { background: #2255b3; }
 
 </style>
 </head>
 <body>
+
+<!-- Update Notification -->
+<div id="updateNotification" class="update-notification">
+    ✓ อัปเดตข้อมูลแล้ว
+</div>
 
 <header class="header">
     <div class="government-seal">
@@ -1037,22 +1037,22 @@ button:hover { background: #2255b3; }
         <div class="status-grid">
             <div class="status-card">
                 <div class="card-label">รวมทั้งหมด</div>
-                <div class="card-value" id="totalCount">-</div>
+                <div class="card-value smooth-update" id="totalCount">-</div>
                 <div class="card-description">บันทึกการสแกนทั้งหมด</div>
             </div>
             <div class="status-card">
                 <div class="card-label">จำนวนคน</div>
-                <div class="card-value" id="inCount">-</div>
+                <div class="card-value smooth-update" id="inCount">-</div>
                 <div class="card-description">บุคคลที่แตกต่างกัน</div>
             </div>
             <div class="status-card">
                 <div class="card-label">จำนวนรถ</div>
-                <div class="card-value" id="outCount">-</div>
+                <div class="card-value smooth-update" id="outCount">-</div>
                 <div class="card-description">ทะเบียนรถที่แตกต่างกัน</div>
             </div>
             <div class="status-card">
                 <div class="card-label">อัปเดตล่าสุด</div>
-                <div class="card-value" style="font-size: 1.5rem;" id="lastUpdate">-</div>
+                <div class="card-value smooth-update" style="font-size: 1.5rem;" id="lastUpdate">-</div>
                 <div class="card-description">เวลาอัปเดตข้อมูล</div>
                 <div class="latest-info" id="latestInfo" style="display: none;">
                     <div class="latest-label">ล่าสุด</div>
@@ -1065,7 +1065,7 @@ button:hover { background: #2255b3; }
     <!-- Charts Section -->
     <div class="charts-section">
         <div class="chart-container">
-            <h3 class="chart-title">สถิติการเข้าออกรายวัน</h3>
+            <h3 class="chart-title">สถิติการเข้าออกรายอาทิตย์</h3>
             <canvas id="barChart"></canvas>
         </div>
         <div class="chart-container">
@@ -1091,7 +1091,7 @@ button:hover { background: #2255b3; }
             <input type="text" class="search-input" id="searchInput" placeholder="ค้นหา ID, ชื่อ, หน่วยงาน หรือทะเบียนรถ...">
             <div class="table-controls-right">
                 <div class="records-info" id="recordsInfo">แสดง 0 จาก 0 รายการ</div>
-                <button class="refresh-btn" onclick="loadData()">รีเฟรชข้อมูล</button>
+                <button class="refresh-btn" onclick="loadData()" id="refreshBtn">รีเฟรชข้อมูล</button>
             </div>
         </div>
         <div class="table-container">
@@ -1118,11 +1118,6 @@ button:hover { background: #2255b3; }
             </div>
         </div>
     </div>
-            <h2>Print Barcode PDF</h2>
-<select id="idSelect">
-  <option value="">-- เลือก ID --</option>
-</select>
-<button id="btnPrintBarcode">ดาวน์โหลด PDF</button>
 </div>
 
 <footer class="footer">
@@ -1171,32 +1166,70 @@ button:hover { background: #2255b3; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx5ttV6fxZLdcF3hhLqt-IaDS_sl5McRNWF5Z-zHLUfZi2YX8XhUBsEAJxBNrl2lP0u/exec?action=getLog';
-
 let allData = [];
 let filteredData = [];
-let lastRawData = ""; // เก็บข้อมูลเดิมเพื่อตรวจสอบการเปลี่ยนแปลง
+let lastRawData = ""; // เก็บข้อมูลเดิม เพื่อเช็คว่ามีเปลี่ยนแปลงหรือไม่
 let barChart = null;
+let isLoading = false;
 
 // Pagination variables
 let currentPage = 1;
 const recordsPerPage = 10;
 
-// 📌 ฟังก์ชันโหลดข้อมูล
-async function loadData() {
+// Smooth update functions
+function showUpdateNotification() {
+    const notification = document.getElementById('updateNotification');
+    notification.classList.add('show');
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 2000);
+}
+
+function animateValueChange(element, newValue) {
+    const oldValue = element.textContent;
+    if (oldValue !== newValue && oldValue !== '-') {
+        element.classList.add('data-updated');
+        setTimeout(() => {
+            element.classList.remove('data-updated');
+        }, 500);
+    }
+    element.textContent = newValue;
+}
+
+async function loadData(showNotification = false) {
+    if (isLoading) return;
+    
     try {
+        isLoading = true;
+        const refreshBtn = document.getElementById('refreshBtn');
+        
+        // แสดงข้อความโหลดเฉพาะตอนแรกหรือเมื่อไม่มีข้อมูล
         if (!allData.length) {
             document.getElementById('dataBody').innerHTML = '<tr><td colspan="5" class="loading">กำลังโหลดข้อมูล</td></tr>';
         }
+        
+        // Add loading state to refresh button
+        if (refreshBtn) {
+            refreshBtn.classList.add('loading');
+            refreshBtn.textContent = 'กำลังอัปเดต...';
+        }
 
         const response = await fetch(API_URL);
-        const jsonData = await response.json(); // Array ตรง ๆ จาก Code.gs
+        const jsonData = await response.json(); // array โดยตรง
 
+        // เช็คว่าข้อมูลใหม่ต่างจากเดิมหรือไม่
         const currentRaw = JSON.stringify(jsonData);
-        if (currentRaw === lastRawData) {
+        const hasNewData = currentRaw !== lastRawData;
+        
+        if (!hasNewData && allData.length > 0) {
             console.log("⏸ ไม่มีข้อมูลใหม่ ไม่อัปเดตซ้ำ");
-            return;
+            return; // ออกเลย ไม่ทำซ้ำ
         }
-        lastRawData = currentRaw;
+        
+        lastRawData = currentRaw; // อัปเดตค่าเก็บไว้เปรียบเทียบรอบหน้า
+        
+        // Store previous latest person for comparison
+        const previousLatest = allData.length > 0 ? allData[0] : null;
 
         allData = jsonData.map(r => ({
             id: r["ID"] ?? '',
@@ -1206,54 +1239,85 @@ async function loadData() {
             timestamp: formatDateTime(r["Timestamp"]),
             rawTimestamp: r["Timestamp"]
         }));
-
-        // เรียงลำดับ timestamp ล่าสุดก่อน
-        allData.sort((a, b) => new Date(b.rawTimestamp) - new Date(a.rawTimestamp));
-
+        
+        // เรียงลำดับตาม timestamp ล่าสุดก่อน
+        allData.sort((a, b) => {
+            const timeA = new Date(a.rawTimestamp).getTime();
+            const timeB = new Date(b.rawTimestamp).getTime();
+            return timeB - timeA;
+        });
+        
         filteredData = [...allData];
-        currentPage = 1;
-
-        updateTable();
+        
+        // Check if there's a new latest person
+        const currentLatest = allData.length > 0 ? allData[0] : null;
+        const hasNewLatest = previousLatest && currentLatest && 
+            (previousLatest.id !== currentLatest.id || 
+             previousLatest.rawTimestamp !== currentLatest.rawTimestamp);
+        
+        // Reset to first page only if there's new data and we're searching
+        const searchTerm = document.getElementById('searchInput').value;
+        if (hasNewData && !searchTerm) {
+            currentPage = 1;
+        }
+        
+        updateTable(); 
         updatePagination();
-        updateStats();
+        updateStats(); 
         updateLastUpdate();
-        updateLatestPerson();
+        updateLatestPerson(hasNewLatest);
         updateCharts();
         updateRanking();
-        loadIDs();
-        loadData();
+        
+        // Show notification for successful updates
+        if (hasNewData && (showNotification || hasNewLatest)) {
+            showUpdateNotification();
+        }
+        
     } catch (error) {
         console.error('Error loading data:', error);
         showError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+    } finally {
+        isLoading = false;
+        
+        // Reset refresh button
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+            refreshBtn.classList.remove('loading');
+            refreshBtn.textContent = 'รีเฟรชข้อมูล';
+        }
     }
 }
 
-// 📌 ฟังก์ชันแปลงเวลา
 function formatDateTime(value) {
     if (!value) return '-';
+
     let date;
 
+    // ถ้าเป็น string
     if (typeof value === 'string') {
+        // ถ้าเป็นรูปแบบ ISO 2025-09-22T01:40:17.121Z
         date = new Date(value);
         if (isNaN(date.getTime())) {
+            // fallback: รูปแบบ "22/9/2025, 14:18:39"
             const parts = value.split(',');
             if (parts.length === 2) {
                 const dateParts = parts[0].trim().split('/');
                 const timeParts = parts[1].trim().split(':');
                 if (dateParts.length === 3 && timeParts.length === 3) {
-                    date = new Date(
-                        parseInt(dateParts[2], 10),
-                        parseInt(dateParts[1], 10) - 1,
-                        parseInt(dateParts[0], 10),
-                        parseInt(timeParts[0], 10),
-                        parseInt(timeParts[1], 10),
-                        parseInt(timeParts[2], 10)
-                    );
+                    const day = parseInt(dateParts[0], 10);
+                    const month = parseInt(dateParts[1], 10) - 1;
+                    const year = parseInt(dateParts[2], 10);
+                    const hour = parseInt(timeParts[0], 10);
+                    const min = parseInt(timeParts[1], 10);
+                    const sec = parseInt(timeParts[2], 10);
+                    date = new Date(year, month, day, hour, min, sec);
                 }
             }
         }
     }
 
+    // ถ้าเป็น number (Excel timestamp)
     if (typeof value === 'number') {
         date = new Date((value - 25569) * 86400 * 1000);
     }
@@ -1266,89 +1330,145 @@ function formatDateTime(value) {
     });
 }
 
-// 📌 ฟังก์ชันอัปเดตตาราง
 function updateTable() {
     const tbody = document.getElementById('dataBody');
     const startIndex = (currentPage - 1) * recordsPerPage;
     const endIndex = startIndex + recordsPerPage;
     const paginatedData = filteredData.slice(startIndex, endIndex);
-
+    
     if (!paginatedData.length) {
         tbody.innerHTML = '<tr><td colspan="5" class="loading">ไม่พบข้อมูลที่ค้นหา</td></tr>';
         return;
     }
-
-    tbody.innerHTML = paginatedData.map(r => `
-        <tr>
-            <td><span class="data-value">${r.id.slice(0, -2)}</span></td>
-            <td><span class="data-value">${r.name}</span></td>
-            <td><span class="status-badge">${r.pathname}</span></td>
-            <td><span class="vehicle-plate">${r.carRegis}</span></td>
-            <td><span class="timestamp">${r.timestamp}</span></td>
-        </tr>
-    `).join('');
-
-    document.getElementById('recordsInfo').textContent =
-        `แสดง ${Math.min(filteredData.length, recordsPerPage)} จาก ${filteredData.length} รายการ`;
+    
+    // Create new rows with smooth animation for new data
+    const newRows = paginatedData.map((r, index) => {
+        const isNewRow = startIndex + index === 0 && currentPage === 1; // First row on first page
+        const rowClass = isNewRow ? 'data-row-new' : '';
+        
+        return `
+            <tr class="${rowClass}">
+                <td><span class="data-value">${r.id}</span></td>
+                <td><span class="data-value">${r.name}</span></td>
+                <td><span class="status-badge">${r.pathname}</span></td>
+                <td><span class="vehicle-plate">${r.carRegis}</span></td>
+                <td><span class="timestamp">${r.timestamp}</span></td>
+            </tr>
+        `;
+    }).join('');
+    
+    tbody.innerHTML = newRows;
+    
+    // Update records info with smooth transition
+    const recordsInfo = document.getElementById('recordsInfo');
+    const newRecordsText = `แสดง ${Math.min(filteredData.length, recordsPerPage)} จาก ${filteredData.length} รายการ`;
+    
+    if (recordsInfo.textContent !== newRecordsText) {
+        recordsInfo.style.opacity = '0.7';
+        setTimeout(() => {
+            recordsInfo.textContent = newRecordsText;
+            recordsInfo.style.opacity = '1';
+        }, 150);
+    }
 }
 
-// 📌 ฟังก์ชัน pagination
 function updatePagination() {
     const totalPages = Math.ceil(filteredData.length / recordsPerPage);
     const startRecord = filteredData.length === 0 ? 0 : (currentPage - 1) * recordsPerPage + 1;
     const endRecord = Math.min(currentPage * recordsPerPage, filteredData.length);
-
-    document.getElementById('paginationInfo').textContent =
-        `แสดง ${startRecord} - ${endRecord} จาก ${filteredData.length} รายการ`;
-
+    
+    // Update pagination info with smooth transition
+    const paginationInfo = document.getElementById('paginationInfo');
+    const newPaginationText = `แสดง ${startRecord} - ${endRecord} จาก ${filteredData.length} รายการ`;
+    
+    if (paginationInfo.textContent !== newPaginationText) {
+        animateValueChange(paginationInfo, newPaginationText);
+    }
+    
+    // Update pagination buttons
     document.getElementById('prevBtn').disabled = currentPage === 1;
     document.getElementById('nextBtn').disabled = currentPage === totalPages || totalPages === 0;
 }
 
 function changePage(direction) {
     const totalPages = Math.ceil(filteredData.length / recordsPerPage);
-
-    if (direction === 'prev' && currentPage > 1) currentPage--;
-    else if (direction === 'next' && currentPage < totalPages) currentPage++;
-
+    
+    if (direction === 'prev' && currentPage > 1) {
+        currentPage--;
+    } else if (direction === 'next' && currentPage < totalPages) {
+        currentPage++;
+    }
+    
     updateTable();
     updatePagination();
 }
 
-// 📌 ฟังก์ชันสถิติ
 function updateStats() {
-    document.getElementById('totalCount').textContent = allData.length;
-    document.getElementById('inCount').textContent = [...new Set(allData.map(r => r.name))].length;
-    document.getElementById('outCount').textContent = [...new Set(allData.map(r => r.carRegis))].length;
+    const totalCount = document.getElementById('totalCount');
+    const inCount = document.getElementById('inCount');
+    const outCount = document.getElementById('outCount');
+    
+    // Animate value changes
+    animateValueChange(totalCount, allData.length);
+    animateValueChange(inCount, [...new Set(allData.map(r=>r.name))].length);
+    animateValueChange(outCount, [...new Set(allData.map(r=>r.carRegis))].length);
 }
 
-// 📌 ฟังก์ชันอัปเดตเวลาอัปเดตล่าสุด
 function updateLastUpdate() {
     const now = new Date();
-    document.getElementById('lastUpdate').textContent =
-        now.toLocaleString('th-TH', { hour:'2-digit', minute:'2-digit' });
+    const lastUpdateElement = document.getElementById('lastUpdate');
+    const newTime = now.toLocaleString('th-TH', { hour:'2-digit', minute:'2-digit' });
+    
+    animateValueChange(lastUpdateElement, newTime);
 }
 
-// 📌 ฟังก์ชันอัปเดตข้อมูลล่าสุด
-function updateLatestPerson() {
+function updateLatestPerson(hasNewLatest = false) {
     const latestInfo = document.getElementById('latestInfo');
     const scanStatusCard = document.getElementById('scanStatusCard');
     const latestScanName = document.getElementById('latestScanName');
     const latestScanTime = document.getElementById('latestScanTime');
     const latestScanVehicle = document.getElementById('latestScanVehicle');
-
+    
     if (allData.length > 0) {
-        const latestPerson = allData[0];
-
+        const latestPerson = allData[0]; // ข้อมูลล่าสุด
+        
+        // อัปเดตข้อมูลในการ์ดเล็ก
         document.getElementById('latestName').textContent = `${latestPerson.name} (${latestPerson.carRegis})`;
         latestInfo.style.display = 'block';
-
-        latestScanName.textContent = latestPerson.name;
-        latestScanTime.textContent = latestPerson.timestamp;
-        latestScanVehicle.textContent = latestPerson.carRegis;
-
-        scanStatusCard.style.animation = 'none';
-        setTimeout(() => { scanStatusCard.style.animation = 'scanCardAppear 0.5s ease-out'; }, 10);
+        
+        // อัปเดตข้อมูลในการ์ดใหญ่ with smooth transitions
+        if (latestScanName.textContent !== latestPerson.name) {
+            latestScanName.style.opacity = '0.7';
+            setTimeout(() => {
+                latestScanName.textContent = latestPerson.name;
+                latestScanName.style.opacity = '1';
+            }, 150);
+        }
+        
+        if (latestScanTime.textContent !== latestPerson.timestamp) {
+            latestScanTime.style.opacity = '0.7';
+            setTimeout(() => {
+                latestScanTime.textContent = latestPerson.timestamp;
+                latestScanTime.style.opacity = '1';
+            }, 150);
+        }
+        
+        if (latestScanVehicle.textContent !== latestPerson.carRegis) {
+            latestScanVehicle.style.opacity = '0.7';
+            setTimeout(() => {
+                latestScanVehicle.textContent = latestPerson.carRegis;
+                latestScanVehicle.style.opacity = '1';
+            }, 150);
+        }
+        
+        // เพิ่มแอนิเมชันเมื่อมีข้อมูลใหม่
+        if (hasNewLatest) {
+            scanStatusCard.style.animation = 'none';
+            setTimeout(() => {
+                scanStatusCard.style.animation = 'scanCardAppear 0.5s ease-out';
+            }, 10);
+        }
+        
     } else {
         latestInfo.style.display = 'none';
         latestScanName.textContent = 'ไม่มีข้อมูล';
@@ -1357,156 +1477,248 @@ function updateLatestPerson() {
     }
 }
 
-// 📌 ฟังก์ชันกราฟ
 function updateCharts() {
-    const last7Days = [];
+    // กราฟแท่งแสดงสถิติรายอาทิตย์ (8 สัปดาห์ล่าสุด)
+    const last8Weeks = [];
     const today = new Date();
-
-    for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit' });
-
-        const dayData = allData.filter(record => {
-            const recordDate = new Date(record.rawTimestamp);
-            return recordDate.toDateString() === date.toDateString();
-        });
-
-        last7Days.push({ date: dateStr, count: dayData.length });
-    }
-
-    const ctx = document.getElementById('barChart').getContext('2d');
-    if (barChart) barChart.destroy();
-
-    barChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: last7Days.map(d => d.date),
-            datasets: [{
-                label: 'จำนวนการสแกน',
-                data: last7Days.map(d => d.count),
-                backgroundColor: 'rgba(49, 130, 206, 0.8)',
-                borderColor: 'rgba(26, 54, 93, 1)',
-                borderWidth: 1,
-                borderRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, ticks:{stepSize:1,color:'#718096'}, grid:{color:'#e2e8f0'} },
-                x: { ticks:{color:'#718096'}, grid:{color:'#e2e8f0'} }
+    
+    // หาวันจันทร์ของสัปดาห์นี้
+    const currentMonday = new Date(today);
+    const dayOfWeek = currentMonday.getDay();
+    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // วันอาทิตย์ = 0
+    currentMonday.setDate(currentMonday.getDate() + daysToMonday);
+    
+    for (let i = 7; i >= 0; i--) {
+        // วันจันทร์ของแต่ละสัปดาห์
+        const weekStart = new Date(currentMonday);
+        weekStart.setDate(currentMonday.getDate() - (i * 7));
+        
+        // วันอาทิตย์ของแต่ละสัปดาห์
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        
+        // รูปแบบการแสดงผล: "01-07 ม.ค." หรือ "สัปดาห์นี้" สำหรับสัปดาห์ปัจจุบัน
+        let weekStr;
+        if (i === 0) {
+            weekStr = 'สัปดาห์นี้';
+        } else {
+            const startDay = weekStart.getDate().toString().padStart(2, '0');
+            const endDay = weekEnd.getDate().toString().padStart(2, '0');
+            const monthName = weekStart.toLocaleDateString('th-TH', { month: 'short' });
+            
+            if (weekStart.getMonth() === weekEnd.getMonth()) {
+                weekStr = `${startDay}-${endDay} ${monthName}`;
+            } else {
+                const endMonthName = weekEnd.toLocaleDateString('th-TH', { month: 'short' });
+                weekStr = `${startDay} ${monthName}-${endDay} ${endMonthName}`;
             }
         }
-    });
+        
+        // นับข้อมูลในช่วงสัปดาห์
+        const weekData = allData.filter(record => {
+            const recordDate = new Date(record.rawTimestamp);
+            return recordDate >= weekStart && recordDate <= weekEnd;
+        });
+        
+        last8Weeks.push({
+            date: weekStr,
+            count: weekData.length,
+            fullDate: `${weekStart.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit' })} - ${weekEnd.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit' })}`
+        });
+    }
+    
+    const ctx = document.getElementById('barChart').getContext('2d');
+    
+    if (barChart) {
+        // Smooth chart update instead of destroying
+        barChart.data.labels = last8Weeks.map(d => d.date);
+        barChart.data.datasets[0].data = last8Weeks.map(d => d.count);
+        barChart.update('none'); // No animation for smooth update
+    } else {
+        barChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: last8Weeks.map(d => d.date),
+                datasets: [{
+                    label: 'จำนวนการสแกน',
+                    data: last8Weeks.map(d => d.count),
+                    backgroundColor: 'rgba(49, 130, 206, 0.8)',
+                    borderColor: 'rgba(26, 54, 93, 1)',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 500,
+                    easing: 'easeInOutQuart'
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                const index = context[0].dataIndex;
+                                return last8Weeks[index].fullDate;
+                            },
+                            label: function(context) {
+                                return `จำนวนการสแกน: ${context.parsed.y} ครั้ง`;
+                            }
+                        },
+                        backgroundColor: 'rgba(26, 54, 93, 0.9)',
+                        titleColor: 'white',
+                        bodyColor: 'white',
+                        borderColor: 'rgba(49, 130, 206, 1)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            color: '#718096',
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            color: '#e2e8f0',
+                            lineWidth: 1
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#718096',
+                            maxRotation: 0,
+                            minRotation: 0,
+                            font: {
+                                size: 11
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                layout: {
+                    padding: {
+                        top: 10,
+                        bottom: 10,
+                        left: 10,
+                        right: 10
+                    }
+                }
+            }
+        });
+    }
 }
 
-// 📌 ฟังก์ชันจัดอันดับ
 function updateRanking() {
+    // นับจำนวนการสแกนของแต่ละคน
     const personCounts = {};
     allData.forEach(record => {
         const key = record.name;
-        if (key) personCounts[key] = (personCounts[key] || 0) + 1;
+        if (key && key !== '') {
+            personCounts[key] = (personCounts[key] || 0) + 1;
+        }
     });
-
+    
+    // เรียงลำดับจากน้อยไปมาก และเอา 5 อันดับแรก
     const sortedPersons = Object.entries(personCounts)
-        .sort((a,b) => a[1]-b[1])
-        .slice(0,5);
-
+        .sort((a, b) => a[1] - b[1])
+        .slice(0, 5);
+    
     const rankingList = document.getElementById('rankingList');
-
+    
     if (sortedPersons.length === 0) {
-        rankingList.innerHTML = `<li class="ranking-item">
-            <div class="ranking-position">-</div>
-            <div class="ranking-info">
-                <div class="ranking-name">ไม่มีข้อมูล</div>
-                <div class="ranking-count">รอข้อมูล</div>
-            </div>
-        </li>`;
+        rankingList.innerHTML = `
+            <li class="ranking-item">
+                <div class="ranking-position">-</div>
+                <div class="ranking-info">
+                    <div class="ranking-name">ไม่มีข้อมูล</div>
+                    <div class="ranking-count">รอข้อมูล</div>
+                </div>
+            </li>
+        `;
         return;
     }
-
-    rankingList.innerHTML = sortedPersons.map((person,index)=>`
+    
+    const newRankingHTML = sortedPersons.map((person, index) => `
         <li class="ranking-item">
-            <div class="ranking-position">${index+1}</div>
+            <div class="ranking-position">${index + 1}</div>
             <div class="ranking-info">
                 <div class="ranking-name">${person[0]}</div>
                 <div class="ranking-count">สแกน <span class="ranking-count-number">${person[1]}</span> ครั้ง</div>
             </div>
         </li>
     `).join('');
+    
+    // Smooth update for ranking
+    if (rankingList.innerHTML !== newRankingHTML) {
+        rankingList.style.opacity = '0.7';
+        setTimeout(() => {
+            rankingList.innerHTML = newRankingHTML;
+            rankingList.style.opacity = '1';
+        }, 200);
+    }
 }
 
-// 📌 ฟังก์ชันค้นหา
 function setupSearch() {
-    document.getElementById('searchInput').addEventListener('input', e => {
-        const term = e.target.value.toLowerCase();
-        filteredData = term === '' ? [...allData] : allData.filter(r =>
-            r.id.toString().toLowerCase().includes(term) ||
-            r.name.toLowerCase().includes(term) ||
-            r.pathname.toLowerCase().includes(term) ||
-            r.carRegis.toLowerCase().includes(term)
-        );
-        currentPage = 1;
-        updateTable();
-        updatePagination();
+    const searchInput = document.getElementById('searchInput');
+    let searchTimeout;
+    
+    searchInput.addEventListener('input', e => {
+        // Debounce search for better performance
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            const term = e.target.value.toLowerCase();
+            filteredData = term === '' ? [...allData] : allData.filter(r => 
+                r.id.toString().toLowerCase().includes(term) ||
+                r.name.toLowerCase().includes(term) ||
+                r.pathname.toLowerCase().includes(term) ||
+                r.carRegis.toLowerCase().includes(term)
+            );
+            currentPage = 1; // Reset to first page when searching
+            updateTable();
+            updatePagination();
+        }, 300);
     });
 }
 
-// 📌 แสดงข้อความ error
 function showError(msg) {
     document.getElementById('dataBody').innerHTML = `<tr><td colspan="5" class="error">${msg}</td></tr>`;
+}
+
+// Manual refresh function with notification
+function manualRefresh() {
+    loadData(true);
 }
 
 function init() {
     setupSearch();
     loadData();
-    loadIDs(); // โหลด ID ให้ select
-    setInterval(loadData, 30000); // อัปเดตทุก 30 วินาที
-
-    // กำหนด event listener ปุ่มดาวน์โหลด
-    const btn = document.getElementById('btnPrintBarcode');
-    if(btn){
-        btn.addEventListener('click', async () => {
-            const select = document.getElementById('idSelect'); // ใช้ idSelect ให้ตรงกับ loadIDs()
-            if(!select){ alert('ไม่พบ select'); return; }
-
-            const id = select.value;
-            if(!id){ alert('กรุณาเลือก ID'); return; }
-
-            const url = 'https://script.google.com/macros/s/AKfycbx5ttV6fxZLdcF3hhLqt-IaDS_sl5McRNWF5Z-zHLUfZi2YX8XhUBsEAJxBNrl2lP0u/exec?action=printBarcode&id=' + encodeURIComponent(id);
-            window.open(url, '_blank'); // เปิด PDF ใหม่
-        });
+    
+    // Auto-update every 30 seconds with smooth transitions
+    setInterval(() => {
+        loadData(false); // Auto updates don't show notification unless there's new data
+    }, 30000);
+    
+    // Update refresh button to show notification
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.onclick = manualRefresh;
     }
 }
 
-// 📌 โหลด ID เข้าส่วน select
-async function loadIDs() {
-    try {
-        const response = await fetch('https://script.google.com/macros/s/AKfycbx5ttV6fxZLdcF3hhLqt-IaDS_sl5McRNWF5Z-zHLUfZi2YX8XhUBsEAJxBNrl2lP0u/exec?action=getIDs');
-        const data = await response.json(); // data เป็น Array ของ Object
-
-        const select = document.getElementById('idSelect');
-        if(!select){ console.error('ไม่พบ select idSelect'); return; }
-
-        select.innerHTML = '<option value="">-- เลือก ID --</option>';
-
-        data.forEach(item => {
-            const option = document.createElement('option');
-            option.value = item.ID; 
-            option.textContent = `${item.ID} | ${item.name}`; 
-            select.appendChild(option);
-        });
-    } catch (error) {
-        console.error('Error loading IDs:', error);
-    }
-}
-
-// 📌 รัน init หลังโหลด DOM
 document.addEventListener('DOMContentLoaded', init);
 </script>
-
 </body>
 </html>
