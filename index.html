@@ -458,11 +458,58 @@ body {
     border-radius: 2px;
 }
 
+/* Ranking Header Styles */
+.ranking-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.ranking-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #3182ce 0%, #2c5aa0 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: 'Sarabun', sans-serif;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(49, 130, 206, 0.2);
+}
+
+.ranking-toggle-btn:hover {
+    background: linear-gradient(135deg, #2c5aa0 0%, #1a365d 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(49, 130, 206, 0.3);
+}
+
+.ranking-toggle-btn:active {
+    transform: translateY(0);
+}
+
+#toggleIcon {
+    font-size: 1rem;
+    font-weight: bold;
+    transition: transform 0.3s ease;
+}
+
+.ranking-toggle-btn.descending #toggleIcon {
+    transform: rotate(180deg);
+}
 
 #barChart {
   width: auto !important;
   height: 400px !important;
 }
+
 .ranking-list {
     list-style: none;
     padding: 0;
@@ -931,6 +978,22 @@ tr:nth-child(even):hover {
         top: 10px;
         font-size: 0.85rem;
     }
+    
+    /* Responsive ranking header */
+    .ranking-header {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    
+    .chart-title {
+        margin-bottom: 12px;
+    }
+    
+    .ranking-toggle-btn {
+        align-self: center;
+        font-size: 0.75rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -993,7 +1056,6 @@ tr:nth-child(even):hover {
 * {
     transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
-
 
 </style>
 </head>
@@ -1069,7 +1131,12 @@ tr:nth-child(even):hover {
             <canvas id="barChart"></canvas>
         </div>
         <div class="chart-container">
-            <h3 class="chart-title">5 อันดับสแกนน้อยที่สุด</h3>
+            <div class="ranking-header">
+                <h3 class="chart-title" id="rankingTitle">5 อันดับสแกนน้อยที่สุด</h3>
+                <button class="ranking-toggle-btn" id="rankingToggleBtn" onclick="toggleRankingMode()">
+                    <span id="toggleIcon">↑</span> สแกนมากที่สุด
+                </button>
+            </div>
             <ul class="ranking-list" id="rankingList">
                 <li class="ranking-item">
                     <div class="ranking-position">1</div>
@@ -1171,6 +1238,7 @@ let filteredData = [];
 let lastRawData = ""; // เก็บข้อมูลเดิม เพื่อเช็คว่ามีเปลี่ยนแปลงหรือไม่
 let barChart = null;
 let isLoading = false;
+let isDescendingOrder = false; // ตัวแปรเก็บสถานะการเรียงลำดับ
 
 // Pagination variables
 let currentPage = 1;
@@ -1590,20 +1658,6 @@ function updateCharts() {
                             }
                         },
                         grid: {
-                            color: '#e2e8f0',
-                            lineWidth: 1
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            color: '#718096',
-                            maxRotation: 0,
-                            minRotation: 0,
-                            font: {
-                                size: 11
-                            }
-                        },
-                        grid: {
                             display: false
                         }
                     }
@@ -1621,6 +1675,28 @@ function updateCharts() {
     }
 }
 
+function toggleRankingMode() {
+    isDescendingOrder = !isDescendingOrder;
+    
+    const toggleBtn = document.getElementById('rankingToggleBtn');
+    const toggleIcon = document.getElementById('toggleIcon');
+    const rankingTitle = document.getElementById('rankingTitle');
+    
+    // อัปเดต UI ของปุ่ม
+    if (isDescendingOrder) {
+        toggleBtn.classList.add('descending');
+        toggleBtn.innerHTML = '<span id="toggleIcon">↓</span> สแกนน้อยที่สุด';
+        rankingTitle.textContent = '5 อันดับสแกนมากที่สุด';
+    } else {
+        toggleBtn.classList.remove('descending');
+        toggleBtn.innerHTML = '<span id="toggleIcon">↑</span> สแกนมากที่สุด';
+        rankingTitle.textContent = '5 อันดับสแกนน้อยที่สุด';
+    }
+    
+    // อัปเดตการแสดงผลอันดับ
+    updateRanking();
+}
+
 function updateRanking() {
     // นับจำนวนการสแกนของแต่ละคน
     const personCounts = {};
@@ -1631,9 +1707,12 @@ function updateRanking() {
         }
     });
     
-    // เรียงลำดับจากน้อยไปมาก และเอา 5 อันดับแรก
+    // เรียงลำดับตามโหมดที่เลือก
     const sortedPersons = Object.entries(personCounts)
-        .sort((a, b) => a[1] - b[1])
+        .sort((a, b) => {
+            // เรียงจากน้อยไปมาก (ascending) หรือมากไปน้อย (descending)
+            return isDescendingOrder ? b[1] - a[1] : a[1] - b[1];
+        })
         .slice(0, 5);
     
     const rankingList = document.getElementById('rankingList');
