@@ -1451,7 +1451,7 @@ async function loadData(showNotification = false) {
     }
 }
 
-// ===================== setupSearch =====================
+// ===================== setupSearch (แก้ไขแล้ว) =====================
 function setupSearch() {
     const searchInput = document.getElementById('searchInput');
     let searchTimeout;
@@ -1459,21 +1459,67 @@ function setupSearch() {
     searchInput.addEventListener('input', e => {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
-            const term = e.target.value.trim().toLowerCase();
-            filteredData = term === '' ? [...allData] : allData.filter(r =>
-                r.id.toString().toLowerCase().includes(term) ||
-                r.name?.toLowerCase().includes(term) ||
-                r.pathname?.toLowerCase().includes(term) ||
-                r.carRegis?.toLowerCase().includes(term)
-            );
-            currentPage = 1; // Reset to first page when searching
-            updateTable();
-            updatePagination();
-        }, 300);
+            performSearch(e.target.value);
+        }, 150); // ลดเวลา timeout ให้ตอบสนองเร็วขึ้น
+    });
+
+    // เพิ่ม event listener สำหรับ Enter key
+    searchInput.addEventListener('keypress', e => {
+        if (e.key === 'Enter') {
+            clearTimeout(searchTimeout);
+            performSearch(e.target.value);
+        }
     });
 }
+// ===================== performSearch (ฟังชั่นใหม่) =====================
+function performSearch(searchValue) {
+    const term = searchValue.trim().toLowerCase();
+    
+    if (term === '') {
+        // ถ้าไม่มีคำค้นหา แสดงข้อมูลทั้งหมด
+        filteredData = [...allData];
+    } else {
+        // กรองข้อมูลตามคำค้นหา
+        filteredData = allData.filter(record => {
+            // ตรวจสอบและแปลงค่าให้เป็น string ก่อนทำการค้นหา
+            const id = (record.id || '').toString().toLowerCase();
+            const name = (record.name || '').toString().toLowerCase();
+            const pathname = (record.pathname || '').toString().toLowerCase();
+            const carRegis = (record.carRegis || '').toString().toLowerCase();
+            const timestamp = (record.timestamp || '').toString().toLowerCase();
+            
+            // ค้นหาในทุกฟิลด์
+            return id.includes(term) || 
+                   name.includes(term) || 
+                   pathname.includes(term) || 
+                   carRegis.includes(term) ||
+                   timestamp.includes(term);
+        });
+    }
+    
+    // รีเซ็ตไปหน้าแรกเมื่อค้นหา
+    currentPage = 1;
+    
+    // อัปเดตตารางและ pagination
+    updateTable();
+    updatePagination();
+    
+    // แสดงสถานะการค้นหา
+    updateSearchStatus(term, filteredData.length);
+}
+// ===================== updateSearchStatus (ฟังชั่นใหม่) =====================
+function updateSearchStatus(searchTerm, resultCount) {
+    const recordsInfo = document.getElementById('recordsInfo');
+    
+    if (searchTerm === '') {
+        recordsInfo.textContent = `แสดง ${Math.min(allData.length, recordsPerPage)} จาก ${allData.length} รายการ`;
+    } else {
+        recordsInfo.textContent = `พบ ${resultCount} รายการจาก "${searchTerm}"`;
+    }
+}
 
-// ===================== updateTable =====================
+
+// ===================== updateTable (ปรับปรุงแล้ว) =====================
 function updateTable() {
     const tbody = document.getElementById('dataBody');
     const startIndex = (currentPage - 1) * recordsPerPage;
@@ -1481,57 +1527,67 @@ function updateTable() {
     const paginatedData = filteredData.slice(startIndex, endIndex);
 
     if (!paginatedData.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="loading">ไม่พบข้อมูลที่ค้นหา</td></tr>';
+        const searchTerm = document.getElementById('searchInput').value.trim();
+        const message = searchTerm ? 
+            `ไม่พบข้อมูลที่ตรงกับ "${searchTerm}"` : 
+            'ไม่พบข้อมูล';
+        tbody.innerHTML = `<tr><td colspan="5" class="loading">${message}</td></tr>`;
         return;
     }
 
     // สร้างแถวข้อมูลพร้อม animation สำหรับข้อมูลใหม่
     const newRows = paginatedData.map((r, index) => {
-        const isNewRow = startIndex + index === 0 && currentPage === 1; // แถวแรกหน้าหน้าแรก
+        const isNewRow = startIndex + index === 0 && currentPage === 1; // แถวแรกหน้าแรก
         const rowClass = isNewRow ? 'data-row-new' : '';
 
         return `
             <tr class="${rowClass}">
-                <td><span class="data-value">${r.id}</span></td>
-                <td><span class="data-value">${r.name}</span></td>
-                <td><span class="status-badge">${r.pathname}</span></td>
-                <td><span class="vehicle-plate">${r.carRegis}</span></td>
-                <td><span class="timestamp">${r.timestamp}</span></td>
+                <td><span class="data-value">${r.id || '-'}</span></td>
+                <td><span class="data-value">${r.name || '-'}</span></td>
+                <td><span class="status-badge">${r.pathname || '-'}</span></td>
+                <td><span class="vehicle-plate">${r.carRegis || '-'}</span></td>
+                <td><span class="timestamp">${r.timestamp || '-'}</span></td>
             </tr>
         `;
     }).join('');
 
     tbody.innerHTML = newRows;
-
-    // Update ข้อมูลจำนวนรายการแบบ smooth
-    const recordsInfo = document.getElementById('recordsInfo');
-    const newRecordsText = `แสดง ${Math.min(filteredData.length, recordsPerPage)} จาก ${filteredData.length} รายการ`;
-
-    if (recordsInfo.textContent !== newRecordsText) {
-        recordsInfo.style.opacity = '0.7';
-        setTimeout(() => {
-            recordsInfo.textContent = newRecordsText;
-            recordsInfo.style.opacity = '1';
-        }, 150);
-    }
 }
 
+
+// ===================== updatePagination (ปรับปรุงแล้ว) =====================
 function updatePagination() {
     const totalPages = Math.ceil(filteredData.length / recordsPerPage);
     const startRecord = filteredData.length === 0 ? 0 : (currentPage - 1) * recordsPerPage + 1;
     const endRecord = Math.min(currentPage * recordsPerPage, filteredData.length);
     
-    // Update pagination info with smooth transition
+    // Update pagination info
     const paginationInfo = document.getElementById('paginationInfo');
-    const newPaginationText = `แสดง ${startRecord} - ${endRecord} จาก ${filteredData.length} รายการ`;
+    const searchTerm = document.getElementById('searchInput').value.trim();
+    
+    let newPaginationText;
+    if (searchTerm) {
+        newPaginationText = `แสดง ${startRecord} - ${endRecord} จาก ${filteredData.length} รายการที่พบ`;
+    } else {
+        newPaginationText = `แสดง ${startRecord} - ${endRecord} จาก ${filteredData.length} รายการ`;
+    }
     
     if (paginationInfo.textContent !== newPaginationText) {
         animateValueChange(paginationInfo, newPaginationText);
     }
     
     // Update pagination buttons
-    document.getElementById('prevBtn').disabled = currentPage === 1;
-    document.getElementById('nextBtn').disabled = currentPage === totalPages || totalPages === 0;
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    
+    if (prevBtn) prevBtn.disabled = currentPage === 1;
+    if (nextBtn) nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+}
+// ===================== clearSearch (ฟังชั่นใหม่) =====================
+function clearSearch() {
+    const searchInput = document.getElementById('searchInput');
+    searchInput.value = '';
+    performSearch('');
 }
 
 function changePage(direction) {
