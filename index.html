@@ -1278,98 +1278,7 @@ function animateValueChange(element, newValue) {
     element.textContent = newValue;
 }
 
-async function loadData(showNotification = false) {
-    if (isLoading) return;
-    
-    try {
-        isLoading = true;
-        const refreshBtn = document.getElementById('refreshBtn');
-        
-        // แสดงข้อความโหลดเฉพาะตอนแรกหรือเมื่อไม่มีข้อมูล
-        if (!allData.length) {
-            document.getElementById('dataBody').innerHTML = '<tr><td colspan="5" class="loading">กำลังโหลดข้อมูล</td></tr>';
-        }
-        
-        // Add loading state to refresh button
-        if (refreshBtn) {
-            refreshBtn.classList.add('loading');
-            refreshBtn.textContent = 'กำลังอัปเดต...';
-        }
 
-        const response = await fetch(API_URL);
-        const jsonData = await response.json(); // array โดยตรง
-
-        // เช็คว่าข้อมูลใหม่ต่างจากเดิมหรือไม่
-        const currentRaw = JSON.stringify(jsonData);
-        const hasNewData = currentRaw !== lastRawData;
-        
-        if (!hasNewData && allData.length > 0) {
-            console.log("⏸ ไม่มีข้อมูลใหม่ ไม่อัปเดตซ้ำ");
-            return; // ออกเลย ไม่ทำซ้ำ
-        }
-        
-        lastRawData = currentRaw; // อัปเดตค่าเก็บไว้เปรียบเทียบรอบหน้า
-        
-        // Store previous latest person for comparison
-        const previousLatest = allData.length > 0 ? allData[0] : null;
-
-        allData = jsonData.map(r => ({
-            id: r["ID"] ?? '',
-            name: r["name"] ?? '',
-            pathname: r["pathname"] ?? '',
-            carRegis: r["car_regis"] ?? '',
-            timestamp: formatDateTime(r["Timestamp"]),
-            rawTimestamp: r["Timestamp"]
-        }));
-        
-        // เรียงลำดับตาม timestamp ล่าสุดก่อน
-        allData.sort((a, b) => {
-            const timeA = new Date(a.rawTimestamp).getTime();
-            const timeB = new Date(b.rawTimestamp).getTime();
-            return timeB - timeA;
-        });
-        
-        filteredData = [...allData];
-        
-        // Check if there's a new latest person
-        const currentLatest = allData.length > 0 ? allData[0] : null;
-        const hasNewLatest = previousLatest && currentLatest && 
-            (previousLatest.id !== currentLatest.id || 
-             previousLatest.rawTimestamp !== currentLatest.rawTimestamp);
-        
-        // Reset to first page only if there's new data and we're searching
-        const searchTerm = document.getElementById('searchInput').value;
-        if (hasNewData && !searchTerm) {
-            currentPage = 1;
-        }
-        
-        updateTable(); 
-        updatePagination();
-        updateStats(); 
-        updateLastUpdate();
-        updateLatestPerson(hasNewLatest);
-        updateCharts();
-        updateRanking();
-        
-        // Show notification for successful updates
-        if (hasNewData && (showNotification || hasNewLatest)) {
-            showUpdateNotification();
-        }
-        
-    } catch (error) {
-        console.error('Error loading data:', error);
-        showError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
-    } finally {
-        isLoading = false;
-        
-        // Reset refresh button
-        const refreshBtn = document.getElementById('refreshBtn');
-        if (refreshBtn) {
-            refreshBtn.classList.remove('loading');
-            refreshBtn.textContent = 'รีเฟรชข้อมูล';
-        }
-    }
-}
 
 function formatDateTime(value) {
     if (!value) return '-';
@@ -1453,6 +1362,118 @@ function formatDateTime(value) {
 //         }, 150);
 //     }
 // }
+
+// ===================== loadData =====================
+async function loadData(showNotification = false) {
+    if (isLoading) return;
+
+    try {
+        isLoading = true;
+        const refreshBtn = document.getElementById('refreshBtn');
+
+        // แสดงข้อความโหลดเฉพาะตอนแรกหรือเมื่อไม่มีข้อมูล
+        if (!allData.length) {
+            document.getElementById('dataBody').innerHTML = '<tr><td colspan="5" class="loading">กำลังโหลดข้อมูล</td></tr>';
+        }
+
+        // Add loading state to refresh button
+        if (refreshBtn) {
+            refreshBtn.classList.add('loading');
+            refreshBtn.textContent = 'กำลังอัปเดต...';
+        }
+
+        const response = await fetch(API_URL);
+        const jsonData = await response.json();
+
+        const currentRaw = JSON.stringify(jsonData);
+        const hasNewData = currentRaw !== lastRawData;
+
+        lastRawData = currentRaw;
+
+        const previousLatest = allData.length > 0 ? allData[0] : null;
+
+        allData = jsonData.map(r => ({
+            id: r["ID"] ?? '',
+            name: r["name"] ?? '',
+            pathname: r["pathname"] ?? '',
+            carRegis: r["car_regis"] ?? '',
+            timestamp: formatDateTime(r["Timestamp"]),
+            rawTimestamp: r["Timestamp"]
+        }));
+
+        // เรียงลำดับตาม timestamp ล่าสุดก่อน
+        allData.sort((a, b) => new Date(b.rawTimestamp) - new Date(a.rawTimestamp));
+
+        // =================== อัปเดต filteredData ตาม search ===================
+        const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+        filteredData = searchTerm === ''
+            ? [...allData]
+            : allData.filter(r =>
+                r.id.toString().toLowerCase().includes(searchTerm) ||
+                r.name?.toLowerCase().includes(searchTerm) ||
+                r.pathname?.toLowerCase().includes(searchTerm) ||
+                r.carRegis?.toLowerCase().includes(searchTerm)
+            );
+
+        // Reset หน้าแรกเมื่อมีข้อมูลใหม่
+        if (hasNewData && !searchTerm) {
+            currentPage = 1;
+        }
+
+        const currentLatest = allData.length > 0 ? allData[0] : null;
+        const hasNewLatest = previousLatest && currentLatest &&
+            (previousLatest.id !== currentLatest.id ||
+             previousLatest.rawTimestamp !== currentLatest.rawTimestamp);
+
+        // =================== Update หน้าเว็บ ===================
+        updateTable();
+        updatePagination();
+        updateStats();
+        updateLastUpdate();
+        updateLatestPerson(hasNewLatest);
+        updateCharts();
+        updateRanking();
+
+        // แสดง notification เมื่อมีข้อมูลใหม่
+        if (hasNewData && (showNotification || hasNewLatest)) {
+            showUpdateNotification();
+        }
+
+    } catch (error) {
+        console.error('Error loading data:', error);
+        showError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+    } finally {
+        isLoading = false;
+        if (refreshBtn) {
+            refreshBtn.classList.remove('loading');
+            refreshBtn.textContent = 'รีเฟรชข้อมูล';
+        }
+    }
+}
+
+// ===================== setupSearch =====================
+function setupSearch() {
+    const searchInput = document.getElementById('searchInput');
+    let searchTimeout;
+
+    searchInput.addEventListener('input', e => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            const term = e.target.value.trim().toLowerCase();
+            filteredData = term === '' ? [...allData] : allData.filter(r =>
+                r.id.toString().toLowerCase().includes(term) ||
+                r.name?.toLowerCase().includes(term) ||
+                r.pathname?.toLowerCase().includes(term) ||
+                r.carRegis?.toLowerCase().includes(term)
+            );
+            currentPage = 1; // Reset to first page when searching
+            updateTable();
+            updatePagination();
+        }, 300);
+    });
+}
+
+// ===================== updateTable =====================
 function updateTable() {
     const tbody = document.getElementById('dataBody');
     const startIndex = (currentPage - 1) * recordsPerPage;
@@ -1464,36 +1485,27 @@ function updateTable() {
         return;
     }
 
-    // ✅ สร้าง row ใหม่ พร้อม smooth effect สำหรับข้อมูลล่าสุด
-    tbody.innerHTML = ""; // ล้างก่อน
-    paginatedData.forEach((r, index) => {
-        const tr = document.createElement('tr');
+    // สร้างแถวข้อมูลพร้อม animation สำหรับข้อมูลใหม่
+    const newRows = paginatedData.map((r, index) => {
+        const isNewRow = startIndex + index === 0 && currentPage === 1; // แถวแรกหน้าหน้าแรก
+        const rowClass = isNewRow ? 'data-row-new' : '';
 
-        // แถวแรกของหน้าที่ 1 → ถือว่าเป็นข้อมูลล่าสุด
-        if (startIndex + index === 0 && currentPage === 1) {
-            tr.classList.add('data-row-new', 'fade-in');
-        } else {
-            tr.classList.add('fade-in');
-        }
-
-        tr.innerHTML = `
-            <td><span class="data-value">${r.id}</span></td>
-            <td><span class="data-value">${r.name}</span></td>
-            <td><span class="status-badge">${r.pathname}</span></td>
-            <td><span class="vehicle-plate">${r.carRegis}</span></td>
-            <td><span class="timestamp">${r.timestamp}</span></td>
+        return `
+            <tr class="${rowClass}">
+                <td><span class="data-value">${r.id}</span></td>
+                <td><span class="data-value">${r.name}</span></td>
+                <td><span class="status-badge">${r.pathname}</span></td>
+                <td><span class="vehicle-plate">${r.carRegis}</span></td>
+                <td><span class="timestamp">${r.timestamp}</span></td>
+            </tr>
         `;
+    }).join('');
 
-        tbody.appendChild(tr);
+    tbody.innerHTML = newRows;
 
-        // Trigger animation
-        setTimeout(() => tr.classList.add('show'), 10);
-    });
-
-    // ✅ อัปเดต records info แบบ smooth
+    // Update ข้อมูลจำนวนรายการแบบ smooth
     const recordsInfo = document.getElementById('recordsInfo');
-    const showingCount = Math.min(paginatedData.length, recordsPerPage);
-    const newRecordsText = `แสดง ${showingCount} จาก ${filteredData.length} รายการ`;
+    const newRecordsText = `แสดง ${Math.min(filteredData.length, recordsPerPage)} จาก ${filteredData.length} รายการ`;
 
     if (recordsInfo.textContent !== newRecordsText) {
         recordsInfo.style.opacity = '0.7';
@@ -1814,27 +1826,6 @@ function updateRanking() {
     }
 }
 
-function setupSearch() {
-    const searchInput = document.getElementById('searchInput');
-    let searchTimeout;
-    
-    searchInput.addEventListener('input', e => {
-        // Debounce search for better performance
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            const term = e.target.value.toLowerCase();
-            filteredData = term === '' ? [...allData] : allData.filter(r => 
-                r.id.toString().toLowerCase().includes(term) ||
-                r.name.toLowerCase().includes(term) ||
-                r.pathname.toLowerCase().includes(term) ||
-                r.carRegis.toLowerCase().includes(term)
-            );
-            currentPage = 1; // Reset to first page when searching
-            updateTable();
-            updatePagination();
-        }, 300);
-    });
-}
 
 function showError(msg) {
     document.getElementById('dataBody').innerHTML = `<tr><td colspan="5" class="error">${msg}</td></tr>`;
