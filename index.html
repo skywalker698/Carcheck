@@ -1056,6 +1056,20 @@ tr:nth-child(even):hover {
 * {
     transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
+.fade-in {
+  opacity: 0;
+  transition: opacity 0.5s ease-in;
+}
+.fade-in.show {
+  opacity: 1;
+}
+.data-row-new {
+  background-color: #e6ffe6; /* แถวใหม่เป็นสีอ่อน */
+  transition: background-color 2s ease-out;
+}
+.data-row-new.show {
+  background-color: transparent; /* จางหายไป */
+}
 
 </style>
 </head>
@@ -1398,39 +1412,89 @@ function formatDateTime(value) {
     });
 }
 
+// function updateTable() {
+//     const tbody = document.getElementById('dataBody');
+//     const startIndex = (currentPage - 1) * recordsPerPage;
+//     const endIndex = startIndex + recordsPerPage;
+//     const paginatedData = filteredData.slice(startIndex, endIndex);
+    
+//     if (!paginatedData.length) {
+//         tbody.innerHTML = '<tr><td colspan="5" class="loading">ไม่พบข้อมูลที่ค้นหา</td></tr>';
+//         return;
+//     }
+    
+//     // Create new rows with smooth animation for new data
+//     const newRows = paginatedData.map((r, index) => {
+//         const isNewRow = startIndex + index === 0 && currentPage === 1; // First row on first page
+//         const rowClass = isNewRow ? 'data-row-new' : '';
+        
+//         return `
+//             <tr class="${rowClass}">
+//                 <td><span class="data-value">${r.id}</span></td>
+//                 <td><span class="data-value">${r.name}</span></td>
+//                 <td><span class="status-badge">${r.pathname}</span></td>
+//                 <td><span class="vehicle-plate">${r.carRegis}</span></td>
+//                 <td><span class="timestamp">${r.timestamp}</span></td>
+//             </tr>
+//         `;
+//     }).join('');
+    
+//     tbody.innerHTML = newRows;
+    
+//     // Update records info with smooth transition
+//     const recordsInfo = document.getElementById('recordsInfo');
+//     const newRecordsText = `แสดง ${Math.min(filteredData.length, recordsPerPage)} จาก ${filteredData.length} รายการ`;
+    
+//     if (recordsInfo.textContent !== newRecordsText) {
+//         recordsInfo.style.opacity = '0.7';
+//         setTimeout(() => {
+//             recordsInfo.textContent = newRecordsText;
+//             recordsInfo.style.opacity = '1';
+//         }, 150);
+//     }
+// }
 function updateTable() {
     const tbody = document.getElementById('dataBody');
     const startIndex = (currentPage - 1) * recordsPerPage;
     const endIndex = startIndex + recordsPerPage;
     const paginatedData = filteredData.slice(startIndex, endIndex);
-    
+
     if (!paginatedData.length) {
         tbody.innerHTML = '<tr><td colspan="5" class="loading">ไม่พบข้อมูลที่ค้นหา</td></tr>';
         return;
     }
-    
-    // Create new rows with smooth animation for new data
-    const newRows = paginatedData.map((r, index) => {
-        const isNewRow = startIndex + index === 0 && currentPage === 1; // First row on first page
-        const rowClass = isNewRow ? 'data-row-new' : '';
-        
-        return `
-            <tr class="${rowClass}">
-                <td><span class="data-value">${r.id}</span></td>
-                <td><span class="data-value">${r.name}</span></td>
-                <td><span class="status-badge">${r.pathname}</span></td>
-                <td><span class="vehicle-plate">${r.carRegis}</span></td>
-                <td><span class="timestamp">${r.timestamp}</span></td>
-            </tr>
+
+    // ✅ สร้าง row ใหม่ พร้อม smooth effect สำหรับข้อมูลล่าสุด
+    tbody.innerHTML = ""; // ล้างก่อน
+    paginatedData.forEach((r, index) => {
+        const tr = document.createElement('tr');
+
+        // แถวแรกของหน้าที่ 1 → ถือว่าเป็นข้อมูลล่าสุด
+        if (startIndex + index === 0 && currentPage === 1) {
+            tr.classList.add('data-row-new', 'fade-in');
+        } else {
+            tr.classList.add('fade-in');
+        }
+
+        tr.innerHTML = `
+            <td><span class="data-value">${r.id}</span></td>
+            <td><span class="data-value">${r.name}</span></td>
+            <td><span class="status-badge">${r.pathname}</span></td>
+            <td><span class="vehicle-plate">${r.carRegis}</span></td>
+            <td><span class="timestamp">${r.timestamp}</span></td>
         `;
-    }).join('');
-    
-    tbody.innerHTML = newRows;
-    
-    // Update records info with smooth transition
+
+        tbody.appendChild(tr);
+
+        // Trigger animation
+        setTimeout(() => tr.classList.add('show'), 10);
+    });
+
+    // ✅ อัปเดต records info แบบ smooth
     const recordsInfo = document.getElementById('recordsInfo');
-    const newRecordsText = `แสดง ${Math.min(filteredData.length, recordsPerPage)} จาก ${filteredData.length} รายการ`;
-    
+    const showingCount = Math.min(paginatedData.length, recordsPerPage);
+    const newRecordsText = `แสดง ${showingCount} จาก ${filteredData.length} รายการ`;
+
     if (recordsInfo.textContent !== newRecordsText) {
         recordsInfo.style.opacity = '0.7';
         setTimeout(() => {
@@ -1781,16 +1845,43 @@ function manualRefresh() {
     loadData(true);
 }
 
+async function startLiveUpdate() {
+    let lastId = null;
+    let lastTimestamp = null;
+
+    while (true) {
+        try {
+            const res = await fetch(API_URL + "?action=getLatestId");
+            const data = await res.json();
+
+            // 📌 ถ้ามีข้อมูลใหม่ ให้โหลดข้อมูลพร้อม effect
+            if (data.latestId !== lastId || data.latestTimestamp !== lastTimestamp) {
+                console.log("📢 พบข้อมูลใหม่ → รีเฟรชตาราง");
+                await loadData(true); 
+                lastId = data.latestId;
+                lastTimestamp = data.latestTimestamp;
+            }
+
+            // รอ 3 วิ ก่อนเช็กอีกรอบ
+            await new Promise(r => setTimeout(r, 3000));
+
+        } catch (err) {
+            console.error("❌ Live update error:", err);
+            await new Promise(r => setTimeout(r, 5000));
+        }
+    }
+}
+
 function init() {
     setupSearch();
     loadData();
-    
-    // Auto-update every 30 seconds with smooth transitions
-    setInterval(() => {
-        loadData(false); // Auto updates don't show notification unless there's new data
-    }, 30000);
-    
-    // Update refresh button to show notification
+
+    // ❌ ไม่ใช้ setInterval แล้ว
+    // setInterval(() => { loadData(false); }, 30000);
+
+    // ✅ ใช้ Live Update แทน
+    startLiveUpdate();
+
     const refreshBtn = document.getElementById('refreshBtn');
     if (refreshBtn) {
         refreshBtn.onclick = manualRefresh;
